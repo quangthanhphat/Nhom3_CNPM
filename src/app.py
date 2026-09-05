@@ -7,11 +7,13 @@ from api.controllers.auth_controller import bp as auth_bp
 from api.controllers.service_controller import bp as service_bp
 
 from infrastructure.databases import init_db
-
+from api.controllers.delivery_controller import bp as delivery_bp
 from flasgger import Swagger
 from flask_swagger_ui import get_swaggerui_blueprint
 from api.controllers.service_category_controller import bp as service_category_bp
-
+from api.controllers.order_controller import bp as order_bp
+from api.controllers.processing_workflow_controller import bp as processing_workflow_bp
+from api.controllers.payment_controller import bp as payment_bp
 def create_app():
     app = Flask(__name__)
 
@@ -22,6 +24,11 @@ def create_app():
     app.register_blueprint(auth_bp)
     app.register_blueprint(service_bp)
     app.register_blueprint(service_category_bp)
+    app.register_blueprint(order_bp)
+    app.register_blueprint(payment_bp)
+    app.register_blueprint(delivery_bp)
+    app.register_blueprint(processing_workflow_bp)
+    
 
     # Thêm Swagger UI blueprint
     SWAGGER_URL = '/docs'
