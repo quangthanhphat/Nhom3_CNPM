@@ -2,16 +2,15 @@ from flask import Flask, jsonify
 
 from api.swagger import spec
 
-
 from api.controllers.film_lab_controller import bp as film_lab_bp
 from api.controllers.auth_controller import bp as auth_bp
-
+from api.controllers.service_controller import bp as service_bp
 
 from infrastructure.databases import init_db
 
 from flasgger import Swagger
 from flask_swagger_ui import get_swaggerui_blueprint
-
+from api.controllers.service_category_controller import bp as service_category_bp
 
 def create_app():
     app = Flask(__name__)
@@ -21,6 +20,8 @@ def create_app():
     # Đăng ký blueprint
     app.register_blueprint(film_lab_bp)
     app.register_blueprint(auth_bp)
+    app.register_blueprint(service_bp)
+    app.register_blueprint(service_category_bp)
 
     # Thêm Swagger UI blueprint
     SWAGGER_URL = '/docs'
@@ -41,8 +42,6 @@ def create_app():
         init_db(app)
     except Exception as e:
         print(f"Error initializing database: {e}")
-
-
 
     # Register routes for Swagger
     with app.test_request_context():
