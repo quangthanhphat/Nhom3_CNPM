@@ -10,8 +10,21 @@ class FilmLabRepository:
         return self.session.query(FilmLabs).all()
 
     def get_by_id(self, film_lab_id):
-        return (
-            self.session.query(FilmLabs)
-            .filter(FilmLabs.id == film_lab_id)
-            .first()
-        )
+        return self.session.query(FilmLabs).filter(
+            FilmLabs.id == film_lab_id
+        ).first()
+
+    def create(self, film_lab):
+        self.session.add(film_lab)
+        self.session.commit()
+        self.session.refresh(film_lab)
+        return film_lab
+
+    def update(self, film_lab):
+        self.session.commit()
+        self.session.refresh(film_lab)
+        return film_lab
+
+    def delete(self, film_lab):
+        self.session.delete(film_lab)
+        self.session.commit()
