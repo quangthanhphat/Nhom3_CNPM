@@ -5,6 +5,7 @@ from api.swagger import spec
 
 from api.controllers.film_lab_controller import bp as film_lab_bp
 from api.controllers.auth_controller import bp as auth_bp
+from api.controllers.digital_film_controller import bp as digital_film_bp
 
 
 from infrastructure.databases import init_db
@@ -21,6 +22,7 @@ def create_app():
     # Đăng ký blueprint
     app.register_blueprint(film_lab_bp)
     app.register_blueprint(auth_bp)
+    app.register_blueprint(digital_film_bp)
 
     # Thêm Swagger UI blueprint
     SWAGGER_URL = '/docs'
