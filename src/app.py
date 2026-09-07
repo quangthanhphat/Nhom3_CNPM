@@ -2,10 +2,9 @@ from flask import Flask, jsonify
 
 from api.swagger import spec
 
-
 from api.controllers.film_lab_controller import bp as film_lab_bp
 from api.controllers.auth_controller import bp as auth_bp
-
+from api.controllers.marketplace_controller import bp as marketplace_bp
 
 from infrastructure.databases import init_db
 
@@ -21,6 +20,7 @@ def create_app():
     # Đăng ký blueprint
     app.register_blueprint(film_lab_bp)
     app.register_blueprint(auth_bp)
+    app.register_blueprint(marketplace_bp)
 
     # Thêm Swagger UI blueprint
     SWAGGER_URL = '/docs'
@@ -42,12 +42,10 @@ def create_app():
     except Exception as e:
         print(f"Error initializing database: {e}")
 
-
-
     # Register routes for Swagger
     with app.test_request_context():
         for rule in app.url_map.iter_rules():
-            if rule.endpoint.startswith('film_lab.'):
+            if rule.endpoint.startswith(('film_lab.', 'marketplace.')):
                 view_func = app.view_functions[rule.endpoint]
                 print(f"Adding path: {rule.rule} -> {view_func}")
                 spec.path(view=view_func)
