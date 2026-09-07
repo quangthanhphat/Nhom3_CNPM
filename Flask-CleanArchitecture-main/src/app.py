@@ -1,67 +1,58 @@
 from flask import Flask, jsonify
-
+# from api.routes import register_routes
 from api.swagger import spec
-
-from api.controllers.film_lab_controller import bp as film_lab_bp
-from api.controllers.auth_controller import bp as auth_bp
-from api.controllers.marketplace_controller import bp as marketplace_bp
-
+from api.controllers.todo_controller import bp as todo_bp
+from api.controllers.auth_controller import auth_bp as auth_bp
+from api.middleware import middleware
+from api.responses import success_response
 from infrastructure.databases import init_db
-
+from config import Config
 from flasgger import Swagger
+from config import SwaggerConfig
 from flask_swagger_ui import get_swaggerui_blueprint
 
 
 def create_app():
     app = Flask(__name__)
-
     Swagger(app)
-
-    # Đăng ký blueprint
-    app.register_blueprint(film_lab_bp)
+    # Đăng ký blueprint trước
+    app.register_blueprint(todo_bp)
     app.register_blueprint(auth_bp)
-    app.register_blueprint(marketplace_bp)
-
-    # Thêm Swagger UI blueprint
+    # register_routes(app)
+     # Thêm Swagger UI blueprint
     SWAGGER_URL = '/docs'
     API_URL = '/swagger.json'
-
     swaggerui_blueprint = get_swaggerui_blueprint(
         SWAGGER_URL,
         API_URL,
-        config={'app_name': "Film Lab API"}
+        config={'app_name': "Todo API"}
     )
-
-    app.register_blueprint(
-        swaggerui_blueprint,
-        url_prefix=SWAGGER_URL
-    )
+    app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
 
     try:
         init_db(app)
     except Exception as e:
         print(f"Error initializing database: {e}")
 
-    # Register routes for Swagger
+    # Register middleware
+    middleware(app)
+
+    # Register routes
     with app.test_request_context():
         for rule in app.url_map.iter_rules():
-            if rule.endpoint.startswith(('film_lab.', 'marketplace.')):
+            # Thêm các endpoint khác nếu cần
+            if rule.endpoint.startswith(('todo.', 'course.', 'user.', 'auth.')):
                 view_func = app.view_functions[rule.endpoint]
                 print(f"Adding path: {rule.rule} -> {view_func}")
                 spec.path(view=view_func)
-
+            
     @app.route("/swagger.json")
     def swagger_json():
         return jsonify(spec.to_dict())
 
     return app
-
+# Run the application
 
 if __name__ == '__main__':
     app = create_app()
-
-    app.run(
-        host='0.0.0.0',
-        port=9999,
-        debug=True
-    )
+    app.run(host='0.0.0.0', port=9999, debug=True)
