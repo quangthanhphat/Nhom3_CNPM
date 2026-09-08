@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 
 from services.payment_service import PaymentService
-from api.middleware import token_required
+from api.middleware import token_required, role_required
 
 
 bp = Blueprint(
@@ -13,10 +13,25 @@ bp = Blueprint(
 payment_service = PaymentService()
 
 
+# =========================
+# GET ALL PAYMENTS
+# =========================
+
 @bp.route('/', methods=['GET'])
 @token_required
+@role_required(
+    'customer',
+    'film_lab_owner',
+    'admin'
+)
 def get_all_payments():
-    payments = payment_service.list_all()
+    user_id = request.user.get('user_id')
+    role = request.user.get('role')
+
+    payments = payment_service.list_for_user(
+        user_id=user_id,
+        role=role
+    )
 
     result = []
 
@@ -33,12 +48,41 @@ def get_all_payments():
     return jsonify(result), 200
 
 
+# =========================
+# CREATE PAYMENT
+# =========================
+
 @bp.route('/', methods=['POST'])
 @token_required
+@role_required(
+    'customer',
+    'film_lab_owner',
+    'admin'
+)
 def create_payment():
     data = request.get_json()
 
-    payment = payment_service.create(data)
+    user_id = request.user.get('user_id')
+    role = request.user.get('role')
+
+    payment, error = payment_service.create(
+        data=data,
+        user_id=user_id,
+        role=role
+    )
+
+    if error == 'order_not_found':
+        return jsonify({
+            'message': 'Order not found'
+        }), 404
+
+    if error == 'forbidden':
+        return jsonify({
+            'message': (
+                'You do not have permission '
+                'to create payment for this order'
+            )
+        }), 403
 
     return jsonify({
         'message': 'Payment created successfully',
@@ -53,15 +97,39 @@ def create_payment():
     }), 201
 
 
+# =========================
+# GET PAYMENT BY ID
+# =========================
+
 @bp.route('/<uuid:payment_id>', methods=['GET'])
 @token_required
+@role_required(
+    'customer',
+    'film_lab_owner',
+    'admin'
+)
 def get_payment(payment_id):
-    payment = payment_service.get_by_id(payment_id)
+    user_id = request.user.get('user_id')
+    role = request.user.get('role')
 
-    if not payment:
+    payment, error = payment_service.get_by_id_for_user(
+        payment_id=payment_id,
+        user_id=user_id,
+        role=role
+    )
+
+    if error == 'not_found':
         return jsonify({
             'message': 'Payment not found'
         }), 404
+
+    if error == 'forbidden':
+        return jsonify({
+            'message': (
+                'You do not have permission '
+                'to view this payment'
+            )
+        }), 403
 
     return jsonify({
         'id': str(payment.id),
@@ -73,20 +141,47 @@ def get_payment(payment_id):
     }), 200
 
 
+# =========================
+# UPDATE PAYMENT
+# =========================
+
 @bp.route('/<uuid:payment_id>', methods=['PUT'])
 @token_required
+@role_required(
+    'customer',
+    'film_lab_owner',
+    'admin'
+)
 def update_payment(payment_id):
     data = request.get_json()
 
-    payment = payment_service.update(
+    user_id = request.user.get('user_id')
+    role = request.user.get('role')
+
+    payment, error = payment_service.update(
         payment_id=payment_id,
-        data=data
+        data=data,
+        user_id=user_id,
+        role=role
     )
 
-    if not payment:
+    if error == 'not_found':
         return jsonify({
             'message': 'Payment not found'
         }), 404
+
+    if error == 'order_not_found':
+        return jsonify({
+            'message': 'Order not found'
+        }), 404
+
+    if error == 'forbidden':
+        return jsonify({
+            'message': (
+                'You do not have permission '
+                'to update this payment'
+            )
+        }), 403
 
     return jsonify({
         'message': 'Payment updated successfully',
@@ -101,15 +196,39 @@ def update_payment(payment_id):
     }), 200
 
 
+# =========================
+# DELETE PAYMENT
+# =========================
+
 @bp.route('/<uuid:payment_id>', methods=['DELETE'])
 @token_required
+@role_required(
+    'customer',
+    'film_lab_owner',
+    'admin'
+)
 def delete_payment(payment_id):
-    deleted = payment_service.delete(payment_id)
+    user_id = request.user.get('user_id')
+    role = request.user.get('role')
 
-    if not deleted:
+    deleted, error = payment_service.delete(
+        payment_id=payment_id,
+        user_id=user_id,
+        role=role
+    )
+
+    if error == 'not_found':
         return jsonify({
             'message': 'Payment not found'
         }), 404
+
+    if error == 'forbidden':
+        return jsonify({
+            'message': (
+                'You do not have permission '
+                'to delete this payment'
+            )
+        }), 403
 
     return jsonify({
         'message': 'Payment deleted successfully'

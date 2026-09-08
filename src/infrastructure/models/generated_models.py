@@ -3,7 +3,8 @@ import datetime
 import decimal
 import uuid
 
-from sqlalchemy import BigInteger, Boolean, Date, DateTime, ForeignKeyConstraint, Integer, Numeric, PrimaryKeyConstraint, String, Text, UniqueConstraint, Uuid, text
+from sqlalchemy import BigInteger, Boolean, Date, DateTime, Double, ForeignKeyConstraint, Integer, Numeric, PrimaryKeyConstraint, String, Text, UniqueConstraint, Uuid, text
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from infrastructure.databases.base import Base
@@ -173,6 +174,23 @@ class Posts(Base):
 
     comments: Mapped[list['Comments']] = relationship('Comments', back_populates='post')
     knowledge_base: Mapped[list['KnowledgeBase']] = relationship('KnowledgeBase', back_populates='post')
+
+
+class Products(Base):
+    __tablename__ = 'products'
+    __table_args__ = (
+        PrimaryKeyConstraint('id', name='products_pkey'),
+        {'schema': 'public'}
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    seller_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    price: Mapped[float] = mapped_column(Double(53), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text)
+    category: Mapped[Optional[str]] = mapped_column(String(100))
+    status: Mapped[Optional[str]] = mapped_column(String(50))
+    created_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
 
 
 class Ratings(Base):
@@ -376,13 +394,14 @@ class Services(Base):
     status: Mapped[str] = mapped_column(String(20), nullable=False, server_default=text("'active'::character varying"))
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
     description: Mapped[Optional[str]] = mapped_column(Text)
-    turnaround_time: Mapped[Optional[int]] = mapped_column(Integer)
+    turnaround_time_min: Mapped[Optional[int]] = mapped_column(Integer)
+    turnaround_time_max: Mapped[Optional[int]] = mapped_column(Integer)
     processing_capacity: Mapped[Optional[int]] = mapped_column(Integer)
-    supported_film_formats: Mapped[Optional[str]] = mapped_column(Text)
-    processing_options: Mapped[Optional[str]] = mapped_column(Text)
-    scanning_quality: Mapped[Optional[str]] = mapped_column(Text)
-    printing_options: Mapped[Optional[str]] = mapped_column(Text)
-    specialized_techniques: Mapped[Optional[str]] = mapped_column(Text)
+    supported_film_formats: Mapped[Optional[list[str]]] = mapped_column(ARRAY(Text()))
+    processing_options: Mapped[Optional[list[str]]] = mapped_column(ARRAY(Text()))
+    scanning_quality: Mapped[Optional[list[str]]] = mapped_column(ARRAY(Text()))
+    printing_options: Mapped[Optional[list[str]]] = mapped_column(ARRAY(Text()))
+    specialized_techniques: Mapped[Optional[list[str]]] = mapped_column(ARRAY(Text()))
     updated_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
 
     category: Mapped['ServiceCategories'] = relationship('ServiceCategories', back_populates='services')

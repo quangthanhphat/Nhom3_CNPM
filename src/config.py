@@ -29,14 +29,19 @@ class FactoryConfig:
 class Config:
     """Base configuration."""
 
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'a_default_secret_key'
+    SECRET_KEY = os.environ.get(
+        'SECRET_KEY',
+        'film_lab_secret_key'
+    )
 
     DEBUG = os.environ.get(
-        'DEBUG', 'False'
+        'DEBUG',
+        'False'
     ).lower() in ['true', '1']
 
     TESTING = os.environ.get(
-        'TESTING', 'False'
+        'TESTING',
+        'False'
     ).lower() in ['true', '1']
 
     DATABASE_URI = os.environ.get(

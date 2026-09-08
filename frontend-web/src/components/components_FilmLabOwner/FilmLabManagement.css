@@ -1,0 +1,122 @@
+/* =========================
+   FILM LAB PAGE
+========================= */
+
+.film-lab-page {
+  min-height: 100vh;
+  padding: 40px 20px;
+  background: #f5f5f5;
+}
+
+.film-lab-card {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px;
+  box-sizing: border-box;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.film-lab-card h1 {
+  margin: 0 0 10px;
+}
+
+.film-lab-subtitle {
+  margin-bottom: 30px;
+  color: #666;
+}
+
+
+/* =========================
+   SECTION
+========================= */
+
+.film-lab-section h2 {
+  margin-bottom: 25px;
+}
+
+
+/* =========================
+   FORM
+========================= */
+
+.film-lab-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.film-lab-form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.film-lab-form-group label {
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.film-lab-form-group input,
+.film-lab-form-group textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 15px;
+  font-family: inherit;
+}
+
+.film-lab-form-group input:focus,
+.film-lab-form-group textarea:focus {
+  outline: none;
+  border-color: #555;
+}
+
+
+/* =========================
+   SAVE MESSAGE
+========================= */
+
+.save-message {
+  margin: 20px 0 0;
+  color: #2f7d32;
+  font-size: 14px;
+}
+
+
+/* =========================
+   SAVE BUTTON
+========================= */
+
+.save-lab-button {
+  margin-top: 25px;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  background: #222;
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.save-lab-button:hover {
+  background: #444;
+}
+
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 768px) {
+  .film-lab-page {
+    padding: 25px 15px;
+  }
+
+  .film-lab-card {
+    padding: 25px;
+  }
+}

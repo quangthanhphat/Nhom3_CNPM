@@ -26,28 +26,53 @@ class FilmLabService:
 
         return self.repository.create(film_lab)
 
-    def update(self, film_lab_id, data):
+    def update(self, film_lab_id, data, user_id=None, is_admin=False):
         film_lab = self.repository.get_by_id(film_lab_id)
 
         if not film_lab:
-            return None
+            return None, 'not_found'
+
+        # Admin được quản lý tất cả Film Lab.
+        # Film Lab Owner chỉ được sửa Film Lab của chính mình.
+        if not is_admin and str(film_lab.owner_id) != str(user_id):
+            return None, 'forbidden'
 
         film_lab.name = data.get('name', film_lab.name)
-        film_lab.description = data.get('description', film_lab.description)
+        film_lab.description = data.get(
+            'description',
+            film_lab.description
+        )
         film_lab.city = data.get('city', film_lab.city)
-        film_lab.district = data.get('district', film_lab.district)
-        film_lab.address = data.get('address', film_lab.address)
-        film_lab.phone = data.get('phone', film_lab.phone)
-        film_lab.email = data.get('email', film_lab.email)
+        film_lab.district = data.get(
+            'district',
+            film_lab.district
+        )
+        film_lab.address = data.get(
+            'address',
+            film_lab.address
+        )
+        film_lab.phone = data.get(
+            'phone',
+            film_lab.phone
+        )
+        film_lab.email = data.get(
+            'email',
+            film_lab.email
+        )
 
-        return self.repository.update(film_lab)
+        return self.repository.update(film_lab), None
 
-    def delete(self, film_lab_id):
+    def delete(self, film_lab_id, user_id=None, is_admin=False):
         film_lab = self.repository.get_by_id(film_lab_id)
 
         if not film_lab:
-            return False
+            return False, 'not_found'
+
+        # Admin được xóa tất cả.
+        # Film Lab Owner chỉ được xóa Film Lab của chính mình.
+        if not is_admin and str(film_lab.owner_id) != str(user_id):
+            return False, 'forbidden'
 
         self.repository.delete(film_lab)
 
-        return True
+        return True, None

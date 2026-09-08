@@ -19,22 +19,48 @@ class ServiceService:
             name=data.get('name'),
             description=data.get('description'),
             price=data.get('price'),
-            turnaround_time=data.get('turnaround_time'),
+            turnaround_time_min=data.get('turnaround_time_min'),
+            turnaround_time_max=data.get('turnaround_time_max'),
             processing_capacity=data.get('processing_capacity'),
-            supported_film_formats=data.get('supported_film_formats'),
-            processing_options=data.get('processing_options'),
-            scanning_quality=data.get('scanning_quality'),
-            printing_options=data.get('printing_options'),
-            specialized_techniques=data.get('specialized_techniques')
+            supported_film_formats=data.get(
+                'supported_film_formats'
+            ),
+            processing_options=data.get(
+                'processing_options'
+            ),
+            scanning_quality=data.get(
+                'scanning_quality'
+            ),
+            printing_options=data.get(
+                'printing_options'
+            ),
+            specialized_techniques=data.get(
+                'specialized_techniques'
+            )
         )
 
         return self.repository.create(service)
 
-    def update(self, service_id, data):
+    def update(
+        self,
+        service_id,
+        data,
+        user_id=None,
+        is_admin=False
+    ):
         service = self.repository.get_by_id(service_id)
 
         if not service:
-            return None
+            return None, 'not_found'
+
+        # Admin được quản lý tất cả service.
+        # Owner chỉ được quản lý service thuộc Film Lab của mình.
+        if not is_admin:
+            if not service.film_lab:
+                return None, 'forbidden'
+
+            if str(service.film_lab.owner_id) != str(user_id):
+                return None, 'forbidden'
 
         service.film_lab_id = data.get(
             'film_lab_id',
@@ -44,15 +70,25 @@ class ServiceService:
             'category_id',
             service.category_id
         )
-        service.name = data.get('name', service.name)
+        service.name = data.get(
+            'name',
+            service.name
+        )
         service.description = data.get(
             'description',
             service.description
         )
-        service.price = data.get('price', service.price)
-        service.turnaround_time = data.get(
-            'turnaround_time',
-            service.turnaround_time
+        service.price = data.get(
+            'price',
+            service.price
+        )
+        service.turnaround_time_min = data.get(
+            'turnaround_time_min',
+            service.turnaround_time_min
+        )
+        service.turnaround_time_max = data.get(
+            'turnaround_time_max',
+            service.turnaround_time_max
         )
         service.processing_capacity = data.get(
             'processing_capacity',
@@ -79,14 +115,28 @@ class ServiceService:
             service.specialized_techniques
         )
 
-        return self.repository.update(service)
+        return self.repository.update(service), None
 
-    def delete(self, service_id):
+    def delete(
+        self,
+        service_id,
+        user_id=None,
+        is_admin=False
+    ):
         service = self.repository.get_by_id(service_id)
 
         if not service:
-            return False
+            return False, 'not_found'
+
+        # Admin được xóa tất cả service.
+        # Owner chỉ được xóa service thuộc Film Lab của mình.
+        if not is_admin:
+            if not service.film_lab:
+                return False, 'forbidden'
+
+            if str(service.film_lab.owner_id) != str(user_id):
+                return False, 'forbidden'
 
         self.repository.delete(service)
 
-        return True
+        return True, None

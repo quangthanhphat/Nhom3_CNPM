@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 
 from services.processing_workflow_service import ProcessingWorkflowService
-from api.middleware import token_required
+from api.middleware import token_required, role_required
 
 
 bp = Blueprint(
@@ -13,10 +13,25 @@ bp = Blueprint(
 processing_workflow_service = ProcessingWorkflowService()
 
 
+# =========================
+# GET ALL WORKFLOWS
+# =========================
+
 @bp.route('/', methods=['GET'])
 @token_required
+@role_required(
+    'customer',
+    'film_lab_owner',
+    'admin'
+)
 def get_all_workflows():
-    workflows = processing_workflow_service.list_all()
+    user_id = request.user.get('user_id')
+    role = request.user.get('role')
+
+    workflows = processing_workflow_service.list_for_user(
+        user_id=user_id,
+        role=role
+    )
 
     result = []
 
@@ -34,12 +49,40 @@ def get_all_workflows():
     return jsonify(result), 200
 
 
+# =========================
+# CREATE WORKFLOW
+# =========================
+
 @bp.route('/', methods=['POST'])
 @token_required
+@role_required(
+    'film_lab_owner',
+    'admin'
+)
 def create_workflow():
     data = request.get_json()
 
-    workflow = processing_workflow_service.create(data)
+    user_id = request.user.get('user_id')
+    role = request.user.get('role')
+
+    workflow, error = processing_workflow_service.create(
+        data=data,
+        user_id=user_id,
+        role=role
+    )
+
+    if error == 'order_not_found':
+        return jsonify({
+            'message': 'Order not found'
+        }), 404
+
+    if error == 'forbidden':
+        return jsonify({
+            'message': (
+                'You can only create workflows '
+                'for orders of your own film lab'
+            )
+        }), 403
 
     return jsonify({
         'message': 'Processing workflow created successfully',
@@ -55,15 +98,39 @@ def create_workflow():
     }), 201
 
 
+# =========================
+# GET WORKFLOW BY ID
+# =========================
+
 @bp.route('/<uuid:workflow_id>', methods=['GET'])
 @token_required
+@role_required(
+    'customer',
+    'film_lab_owner',
+    'admin'
+)
 def get_workflow(workflow_id):
-    workflow = processing_workflow_service.get_by_id(workflow_id)
+    user_id = request.user.get('user_id')
+    role = request.user.get('role')
 
-    if not workflow:
+    workflow, error = processing_workflow_service.get_by_id_for_user(
+        workflow_id=workflow_id,
+        user_id=user_id,
+        role=role
+    )
+
+    if error == 'not_found':
         return jsonify({
             'message': 'Processing workflow not found'
         }), 404
+
+    if error == 'forbidden':
+        return jsonify({
+            'message': (
+                'You do not have permission '
+                'to view this workflow'
+            )
+        }), 403
 
     return jsonify({
         'id': str(workflow.id),
@@ -76,20 +143,46 @@ def get_workflow(workflow_id):
     }), 200
 
 
+# =========================
+# UPDATE WORKFLOW
+# =========================
+
 @bp.route('/<uuid:workflow_id>', methods=['PUT'])
 @token_required
+@role_required(
+    'film_lab_owner',
+    'admin'
+)
 def update_workflow(workflow_id):
     data = request.get_json()
 
-    workflow = processing_workflow_service.update(
+    user_id = request.user.get('user_id')
+    role = request.user.get('role')
+
+    workflow, error = processing_workflow_service.update(
         workflow_id=workflow_id,
-        data=data
+        data=data,
+        user_id=user_id,
+        role=role
     )
 
-    if not workflow:
+    if error == 'not_found':
         return jsonify({
             'message': 'Processing workflow not found'
         }), 404
+
+    if error == 'order_not_found':
+        return jsonify({
+            'message': 'Order not found'
+        }), 404
+
+    if error == 'forbidden':
+        return jsonify({
+            'message': (
+                'You do not have permission '
+                'to update this workflow'
+            )
+        }), 403
 
     return jsonify({
         'message': 'Processing workflow updated successfully',
@@ -105,15 +198,38 @@ def update_workflow(workflow_id):
     }), 200
 
 
+# =========================
+# DELETE WORKFLOW
+# =========================
+
 @bp.route('/<uuid:workflow_id>', methods=['DELETE'])
 @token_required
+@role_required(
+    'film_lab_owner',
+    'admin'
+)
 def delete_workflow(workflow_id):
-    deleted = processing_workflow_service.delete(workflow_id)
+    user_id = request.user.get('user_id')
+    role = request.user.get('role')
 
-    if not deleted:
+    deleted, error = processing_workflow_service.delete(
+        workflow_id=workflow_id,
+        user_id=user_id,
+        role=role
+    )
+
+    if error == 'not_found':
         return jsonify({
             'message': 'Processing workflow not found'
         }), 404
+
+    if error == 'forbidden':
+        return jsonify({
+            'message': (
+                'You do not have permission '
+                'to delete this workflow'
+            )
+        }), 403
 
     return jsonify({
         'message': 'Processing workflow deleted successfully'

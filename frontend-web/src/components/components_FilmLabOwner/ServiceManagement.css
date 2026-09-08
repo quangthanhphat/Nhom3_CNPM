@@ -1,0 +1,252 @@
+/* =========================
+   SERVICE MANAGEMENT PAGE
+========================= */
+
+.service-management-page {
+  min-height: 100vh;
+  padding: 40px 20px;
+  background: #f5f5f5;
+}
+
+.service-management-card {
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 40px;
+  box-sizing: border-box;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.service-management-card h1 {
+  margin: 0 0 10px;
+}
+
+.service-management-subtitle {
+  margin-bottom: 30px;
+  color: #666;
+}
+
+/* =========================
+   SERVICE LIST
+========================= */
+
+.service-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.service-item {
+  padding: 22px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.service-item h3 {
+  margin: 0 0 10px;
+}
+
+.service-item p {
+  margin: 7px 0;
+  color: #555;
+}
+
+/* =========================
+   SERVICE FORM
+========================= */
+
+.service-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.service-form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.service-form-group label {
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.service-form-group input,
+.service-form-group textarea,
+.service-form-group select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 15px;
+  font-family: inherit;
+}
+
+.service-form-group textarea {
+  resize: vertical;
+}
+
+.service-form-group input:focus,
+.service-form-group textarea:focus,
+.service-form-group select:focus {
+  outline: none;
+  border-color: #555;
+}
+
+/* =========================
+   CHECKBOX LIST
+========================= */
+
+.service-checkbox-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.service-checkbox-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.service-checkbox-item input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.service-checkbox-item span {
+  font-size: 15px;
+  color: #444;
+}
+
+/* =========================
+   CHECKBOX NOTE
+========================= */
+
+.service-checkbox-note {
+  margin-top: 5px;
+  color: #777;
+  font-size: 13px;
+}
+
+/* =========================
+   BUTTONS
+========================= */
+
+.service-action-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.add-service-button,
+.save-service-button,
+.edit-service-button,
+.delete-service-button,
+.cancel-service-button {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.add-service-button {
+  margin-bottom: 25px;
+  background: #222;
+  color: white;
+}
+
+.add-service-button:hover {
+  background: #444;
+}
+
+.save-service-button {
+  background: #222;
+  color: white;
+}
+
+.save-service-button:hover {
+  background: #444;
+}
+
+.edit-service-button {
+  background: #555;
+  color: white;
+}
+
+.edit-service-button:hover {
+  background: #333;
+}
+
+.delete-service-button {
+  background: #ddd;
+  color: #222;
+}
+
+.delete-service-button:hover {
+  background: #bbb;
+}
+
+.cancel-service-button {
+  background: #eee;
+  color: #222;
+}
+
+.cancel-service-button:hover {
+  background: #ddd;
+}
+
+/* =========================
+   MESSAGES
+========================= */
+
+.service-error-message {
+  margin: 20px 0;
+  color: #c62828;
+  font-size: 14px;
+}
+
+.service-success-message {
+  margin: 20px 0;
+  color: #2f7d32;
+  font-size: 14px;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 768px) {
+  .service-management-page {
+    padding: 25px 15px;
+  }
+
+  .service-management-card {
+    padding: 25px;
+  }
+
+  .service-action-buttons {
+    flex-direction: column;
+  }
+
+  .add-service-button,
+  .save-service-button,
+  .edit-service-button,
+  .delete-service-button,
+  .cancel-service-button {
+    width: 100%;
+  }
+}

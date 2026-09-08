@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 
 from services.delivery_service import DeliveryService
-from api.middleware import token_required
+from api.middleware import token_required, role_required
 
 
 bp = Blueprint(
@@ -13,10 +13,26 @@ bp = Blueprint(
 delivery_service = DeliveryService()
 
 
+# =========================
+# GET ALL DELIVERIES
+# =========================
+
 @bp.route('/', methods=['GET'])
 @token_required
+@role_required(
+    'customer',
+    'film_lab_owner',
+    'delivery_partner',
+    'admin'
+)
 def get_all_deliveries():
-    deliveries = delivery_service.list_all()
+    user_id = request.user.get('user_id')
+    role = request.user.get('role')
+
+    deliveries = delivery_service.list_for_user(
+        user_id=user_id,
+        role=role
+    )
 
     result = []
 
@@ -41,12 +57,40 @@ def get_all_deliveries():
     return jsonify(result), 200
 
 
+# =========================
+# CREATE DELIVERY
+# =========================
+
 @bp.route('/', methods=['POST'])
 @token_required
+@role_required(
+    'film_lab_owner',
+    'admin'
+)
 def create_delivery():
     data = request.get_json()
 
-    delivery = delivery_service.create(data)
+    user_id = request.user.get('user_id')
+    role = request.user.get('role')
+
+    delivery, error = delivery_service.create(
+        data=data,
+        user_id=user_id,
+        role=role
+    )
+
+    if error == 'order_not_found':
+        return jsonify({
+            'message': 'Order not found'
+        }), 404
+
+    if error == 'forbidden':
+        return jsonify({
+            'message': (
+                'You can only create delivery '
+                'for orders of your own film lab'
+            )
+        }), 403
 
     return jsonify({
         'message': 'Delivery created successfully',
@@ -69,15 +113,40 @@ def create_delivery():
     }), 201
 
 
+# =========================
+# GET DELIVERY BY ID
+# =========================
+
 @bp.route('/<uuid:delivery_id>', methods=['GET'])
 @token_required
+@role_required(
+    'customer',
+    'film_lab_owner',
+    'delivery_partner',
+    'admin'
+)
 def get_delivery(delivery_id):
-    delivery = delivery_service.get_by_id(delivery_id)
+    user_id = request.user.get('user_id')
+    role = request.user.get('role')
 
-    if not delivery:
+    delivery, error = delivery_service.get_by_id_for_user(
+        delivery_id=delivery_id,
+        user_id=user_id,
+        role=role
+    )
+
+    if error == 'not_found':
         return jsonify({
             'message': 'Delivery not found'
         }), 404
+
+    if error == 'forbidden':
+        return jsonify({
+            'message': (
+                'You do not have permission '
+                'to view this delivery'
+            )
+        }), 403
 
     return jsonify({
         'id': str(delivery.id),
@@ -97,20 +166,47 @@ def get_delivery(delivery_id):
     }), 200
 
 
+# =========================
+# UPDATE DELIVERY
+# =========================
+
 @bp.route('/<uuid:delivery_id>', methods=['PUT'])
 @token_required
+@role_required(
+    'film_lab_owner',
+    'delivery_partner',
+    'admin'
+)
 def update_delivery(delivery_id):
     data = request.get_json()
 
-    delivery = delivery_service.update(
+    user_id = request.user.get('user_id')
+    role = request.user.get('role')
+
+    delivery, error = delivery_service.update(
         delivery_id=delivery_id,
-        data=data
+        data=data,
+        user_id=user_id,
+        role=role
     )
 
-    if not delivery:
+    if error == 'not_found':
         return jsonify({
             'message': 'Delivery not found'
         }), 404
+
+    if error == 'order_not_found':
+        return jsonify({
+            'message': 'Order not found'
+        }), 404
+
+    if error == 'forbidden':
+        return jsonify({
+            'message': (
+                'You do not have permission '
+                'to update this delivery'
+            )
+        }), 403
 
     return jsonify({
         'message': 'Delivery updated successfully',
@@ -133,15 +229,38 @@ def update_delivery(delivery_id):
     }), 200
 
 
+# =========================
+# DELETE DELIVERY
+# =========================
+
 @bp.route('/<uuid:delivery_id>', methods=['DELETE'])
 @token_required
+@role_required(
+    'film_lab_owner',
+    'admin'
+)
 def delete_delivery(delivery_id):
-    deleted = delivery_service.delete(delivery_id)
+    user_id = request.user.get('user_id')
+    role = request.user.get('role')
 
-    if not deleted:
+    deleted, error = delivery_service.delete(
+        delivery_id=delivery_id,
+        user_id=user_id,
+        role=role
+    )
+
+    if error == 'not_found':
         return jsonify({
             'message': 'Delivery not found'
         }), 404
+
+    if error == 'forbidden':
+        return jsonify({
+            'message': (
+                'You do not have permission '
+                'to delete this delivery'
+            )
+        }), 403
 
     return jsonify({
         'message': 'Delivery deleted successfully'
