@@ -1,5 +1,14 @@
 from infrastructure.databases.base import Base
-from sqlalchemy import Column, String, Text, DateTime, ForeignKey
+
+from sqlalchemy import (
+    Column,
+    String,
+    Text,
+    DateTime,
+    ForeignKey,
+    text,
+)
+
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 
@@ -9,7 +18,8 @@ class PostModel(Base):
 
     id = Column(
         UUID(as_uuid=True),
-        primary_key=True
+        primary_key=True,
+        server_default=text('gen_random_uuid()')
     )
 
     author_id = Column(

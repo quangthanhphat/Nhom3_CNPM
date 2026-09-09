@@ -13,6 +13,40 @@ bp = Blueprint(
 order_service = OrderService()
 
 
+def _serialize_order(order):
+    return {
+        'id': str(order.id),
+        'customer_id': str(order.customer_id),
+        'film_lab_id': str(order.film_lab_id),
+        'service_id': str(order.service_id),
+        'film_type_id': str(order.film_type_id),
+
+        'quantity': order.quantity,
+
+        'processing_options': order.processing_options,
+        'scanning_quality': order.scanning_quality,
+        'printing_requirements': order.printing_requirements,
+        'additional_requests': order.additional_requests,
+
+        'delivery_type': order.delivery_type,
+
+        'status': order.status,
+        'total_amount': order.total_amount,
+        'notes': order.notes,
+
+        'created_at': (
+            order.created_at.isoformat()
+            if order.created_at
+            else None
+        ),
+        'updated_at': (
+            order.updated_at.isoformat()
+            if order.updated_at
+            else None
+        )
+    }
+
+
 # =========================
 # GET ALL ORDERS
 # =========================
@@ -33,29 +67,16 @@ def get_all_orders():
         role=role
     )
 
-    result = []
-
-    for order in orders:
-        result.append({
-            'id': str(order.id),
-            'customer_id': str(order.customer_id),
-            'film_lab_id': str(order.film_lab_id),
-            'service_id': str(order.service_id),
-            'film_type_id': str(order.film_type_id),
-            'processing_options': order.processing_options,
-            'scanning_quality': order.scanning_quality,
-            'printing_requirements': order.printing_requirements,
-            'additional_requests': order.additional_requests,
-            'status': order.status,
-            'total_amount': order.total_amount,
-            'notes': order.notes
-        })
+    result = [
+        _serialize_order(order)
+        for order in orders
+    ]
 
     return jsonify(result), 200
 
 
 # =========================
-# CREATE ORDER
+# CREATE ORDER REQUEST
 # =========================
 
 @bp.route('/', methods=['POST'])
@@ -64,7 +85,7 @@ def get_all_orders():
     'customer'
 )
 def create_order():
-    data = request.get_json()
+    data = request.get_json() or {}
 
     customer_id = request.user.get('user_id')
 
@@ -74,21 +95,8 @@ def create_order():
     )
 
     return jsonify({
-        'message': 'Order created successfully',
-        'order': {
-            'id': str(order.id),
-            'customer_id': str(order.customer_id),
-            'film_lab_id': str(order.film_lab_id),
-            'service_id': str(order.service_id),
-            'film_type_id': str(order.film_type_id),
-            'processing_options': order.processing_options,
-            'scanning_quality': order.scanning_quality,
-            'printing_requirements': order.printing_requirements,
-            'additional_requests': order.additional_requests,
-            'status': order.status,
-            'total_amount': order.total_amount,
-            'notes': order.notes
-        }
+        'message': 'Order request created successfully',
+        'order': _serialize_order(order)
     }), 201
 
 
@@ -123,20 +131,9 @@ def get_order(order_id):
             'message': 'You do not have permission to view this order'
         }), 403
 
-    return jsonify({
-        'id': str(order.id),
-        'customer_id': str(order.customer_id),
-        'film_lab_id': str(order.film_lab_id),
-        'service_id': str(order.service_id),
-        'film_type_id': str(order.film_type_id),
-        'processing_options': order.processing_options,
-        'scanning_quality': order.scanning_quality,
-        'printing_requirements': order.printing_requirements,
-        'additional_requests': order.additional_requests,
-        'status': order.status,
-        'total_amount': order.total_amount,
-        'notes': order.notes
-    }), 200
+    return jsonify(
+        _serialize_order(order)
+    ), 200
 
 
 # =========================
@@ -151,10 +148,23 @@ def get_order(order_id):
     'admin'
 )
 def update_order(order_id):
-    data = request.get_json()
+    data = request.get_json() or {}
 
     user_id = request.user.get('user_id')
     role = request.user.get('role')
+
+    # Owner không được tự chuyển Order sang processing.
+    # Order chỉ chuyển sang processing sau khi payment thành công.
+    if (
+        role == 'film_lab_owner'
+        and data.get('status') == 'processing'
+    ):
+        return jsonify({
+            'message': (
+                'Order can only move to processing '
+                'after successful payment'
+            )
+        }), 400
 
     order, error = order_service.update(
         order_id=order_id,
@@ -170,25 +180,15 @@ def update_order(order_id):
 
     if error == 'forbidden':
         return jsonify({
-            'message': 'You do not have permission to update this order'
+            'message': (
+                'You do not have permission '
+                'to update this order'
+            )
         }), 403
 
     return jsonify({
         'message': 'Order updated successfully',
-        'order': {
-            'id': str(order.id),
-            'customer_id': str(order.customer_id),
-            'film_lab_id': str(order.film_lab_id),
-            'service_id': str(order.service_id),
-            'film_type_id': str(order.film_type_id),
-            'processing_options': order.processing_options,
-            'scanning_quality': order.scanning_quality,
-            'printing_requirements': order.printing_requirements,
-            'additional_requests': order.additional_requests,
-            'status': order.status,
-            'total_amount': order.total_amount,
-            'notes': order.notes
-        }
+        'order': _serialize_order(order)
     }), 200
 
 
@@ -220,7 +220,10 @@ def delete_order(order_id):
 
     if error == 'forbidden':
         return jsonify({
-            'message': 'You do not have permission to delete this order'
+            'message': (
+                'You do not have permission '
+                'to delete this order'
+            )
         }), 403
 
     return jsonify({

@@ -1,0 +1,21 @@
+.admin-dashboard {
+  width: 100%;
+  min-height: 100vh;
+  position: relative;
+}
+
+.admin-logout-button {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  background: #222;
+  color: white;
+  cursor: pointer;
+}
+
+.admin-logout-button:hover {
+  opacity: 0.85;
+}

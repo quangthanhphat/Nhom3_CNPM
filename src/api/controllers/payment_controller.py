@@ -71,10 +71,18 @@ def create_payment():
         role=role
     )
 
+    # =========================
+    # ORDER NOT FOUND
+    # =========================
+
     if error == 'order_not_found':
         return jsonify({
             'message': 'Order not found'
         }), 404
+
+    # =========================
+    # FORBIDDEN
+    # =========================
 
     if error == 'forbidden':
         return jsonify({
@@ -83,6 +91,21 @@ def create_payment():
                 'to create payment for this order'
             )
         }), 403
+
+    # =========================
+    # ORDER NOT READY FOR PAYMENT
+    # =========================
+
+    if error == 'order_not_ready_for_payment':
+        return jsonify({
+            'message': (
+                'This order is not ready for payment'
+            )
+        }), 400
+
+    # =========================
+    # SUCCESS
+    # =========================
 
     return jsonify({
         'message': 'Payment created successfully',
@@ -118,10 +141,18 @@ def get_payment(payment_id):
         role=role
     )
 
+    # =========================
+    # PAYMENT NOT FOUND
+    # =========================
+
     if error == 'not_found':
         return jsonify({
             'message': 'Payment not found'
         }), 404
+
+    # =========================
+    # FORBIDDEN
+    # =========================
 
     if error == 'forbidden':
         return jsonify({
@@ -130,6 +161,10 @@ def get_payment(payment_id):
                 'to view this payment'
             )
         }), 403
+
+    # =========================
+    # SUCCESS
+    # =========================
 
     return jsonify({
         'id': str(payment.id),
@@ -165,15 +200,27 @@ def update_payment(payment_id):
         role=role
     )
 
+    # =========================
+    # PAYMENT NOT FOUND
+    # =========================
+
     if error == 'not_found':
         return jsonify({
             'message': 'Payment not found'
         }), 404
 
+    # =========================
+    # ORDER NOT FOUND
+    # =========================
+
     if error == 'order_not_found':
         return jsonify({
             'message': 'Order not found'
         }), 404
+
+    # =========================
+    # FORBIDDEN
+    # =========================
 
     if error == 'forbidden':
         return jsonify({
@@ -182,6 +229,10 @@ def update_payment(payment_id):
                 'to update this payment'
             )
         }), 403
+
+    # =========================
+    # SUCCESS
+    # =========================
 
     return jsonify({
         'message': 'Payment updated successfully',
@@ -217,10 +268,18 @@ def delete_payment(payment_id):
         role=role
     )
 
+    # =========================
+    # PAYMENT NOT FOUND
+    # =========================
+
     if error == 'not_found':
         return jsonify({
             'message': 'Payment not found'
         }), 404
+
+    # =========================
+    # FORBIDDEN
+    # =========================
 
     if error == 'forbidden':
         return jsonify({
@@ -229,6 +288,10 @@ def delete_payment(payment_id):
                 'to delete this payment'
             )
         }), 403
+
+    # =========================
+    # SUCCESS
+    # =========================
 
     return jsonify({
         'message': 'Payment deleted successfully'

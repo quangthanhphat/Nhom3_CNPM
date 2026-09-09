@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from infrastructure.models.generated_models import Payments
 from infrastructure.repositories.payment_repository import PaymentRepository
 from infrastructure.repositories.order_repository import OrderRepository
@@ -102,8 +104,9 @@ class PaymentService:
         if not order:
             return None, 'order_not_found'
 
-        # Payment chỉ được tạo cho order
-        # mà user có quyền truy cập.
+        # ==========================================
+        # CHECK PERMISSION
+        # ==========================================
 
         if role == 'admin':
             pass
@@ -126,20 +129,67 @@ class PaymentService:
         else:
             return None, 'forbidden'
 
+        # ==========================================
+        # PAYMENT FLOW
+        # ==========================================
+
+        current_status = (
+            str(order.status).lower()
+            if order.status
+            else ''
+        )
+
+        # Chỉ order đã được Owner accept mới được thanh toán
+        if current_status != 'confirmed':
+            return None, 'order_not_ready_for_payment'
+
+        # ==========================================
+        # CREATE PAYMENT
+        # ==========================================
+
+        payment_status = data.get(
+            'status',
+            'pending'
+        )
+
         payment = Payments(
             order_id=order_id,
             amount=data.get('amount'),
             transaction_reference=data.get(
                 'transaction_reference'
             ),
-            status=data.get(
-                'status',
-                'pending'
-            ),
+            status=payment_status,
             paid_at=data.get('paid_at')
         )
 
-        return self.repository.create(payment), None
+        # ==========================================
+        # DEMO PAYMENT SUCCESS
+        # ==========================================
+        #
+        # Nếu payment có status = completed
+        # thì coi như khách đã thanh toán thành công.
+        #
+        # Sau đó Order tự động chuyển:
+        #
+        # confirmed -> processing
+        #
+
+        if str(payment_status).lower() == 'completed':
+            if not payment.paid_at:
+                payment.paid_at = datetime.now(timezone.utc)
+
+        payment = self.repository.create(payment)
+
+        # ==========================================
+        # UPDATE ORDER STATUS
+        # ==========================================
+
+        if str(payment.status).lower() == 'completed':
+            order.status = 'processing'
+
+            self.order_repository.update(order)
+
+        return payment, None
 
     def update(
         self,

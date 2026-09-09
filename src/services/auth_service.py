@@ -64,6 +64,40 @@ class AuthService:
 
         return user, token
 
+    def get_user_by_id(self, user_id):
+        return self.repository.find_by_id(user_id)
+
+    def update_profile(self, user_id, data):
+        user = self.repository.find_by_id(user_id)
+
+        if not user:
+            return None, 'not_found'
+
+        email = data.get('email')
+
+        # Nếu đổi email thì kiểm tra email mới
+        if email and email != user.email:
+            existing_user = self.repository.find_by_email(email)
+
+            if existing_user and str(existing_user.id) != str(user.id):
+                return None, 'email_exists'
+
+            user.email = email
+
+        # Chỉ cho phép sửa các thông tin profile
+        if 'full_name' in data:
+            user.full_name = data.get('full_name')
+
+        if 'phone' in data:
+            user.phone = data.get('phone')
+
+        if 'avatar_url' in data:
+            user.avatar_url = data.get('avatar_url')
+
+        user.updated_at = datetime.now(timezone.utc)
+
+        return self.repository.update(user), None
+
     def _create_token(self, user):
         secret_key = os.environ.get(
             'SECRET_KEY',

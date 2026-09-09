@@ -13,13 +13,32 @@ bp = Blueprint(
 rating_service = RatingService()
 
 
+def rating_to_dict(rating):
+    return {
+        'id': str(rating.id),
+        'user_id': str(rating.user_id),
+        'target_type': rating.target_type,
+        'target_id': str(rating.target_id),
+        'rating': rating.rating,
+        'review': rating.review,
+        'created_at': rating.created_at
+    }
+
+
+# =========================
+# GET ALL RATINGS
+# =========================
+
 @bp.route('/', methods=['GET'])
 @token_required
 @role_required(
     'customer',
+    'film_lab_owner',
+    'photography_expert',
     'admin'
 )
 def get_all_ratings():
+
     user_id = request.user.get('user_id')
     role = request.user.get('role')
 
@@ -28,26 +47,85 @@ def get_all_ratings():
         role=role
     )
 
-    result = []
-
-    for rating in ratings:
-        result.append({
-            'id': str(rating.id),
-            'user_id': str(rating.user_id),
-            'order_id': str(rating.order_id),
-            'rating': rating.rating,
-            'review_text': rating.review_text,
-            'created_at': rating.created_at,
-            'updated_at': rating.updated_at
-        })
+    result = [
+        rating_to_dict(rating)
+        for rating in ratings
+    ]
 
     return jsonify(result), 200
 
 
+# =========================
+# GET RATINGS FOR POST
+# =========================
+
+@bp.route('/post/<uuid:post_id>', methods=['GET'])
+@token_required
+@role_required(
+    'customer',
+    'film_lab_owner',
+    'photography_expert',
+    'admin'
+)
+def get_post_ratings(post_id):
+
+    user_id = request.user.get('user_id')
+
+    ratings = rating_service.list_for_post(
+        post_id=post_id
+    )
+
+    # =========================
+    # CALCULATE PUBLIC SUMMARY
+    # =========================
+
+    count = len(ratings)
+
+    if count > 0:
+        average = sum(
+            rating.rating
+            for rating in ratings
+        ) / count
+    else:
+        average = 0
+
+    # =========================
+    # GET CURRENT USER RATING
+    # =========================
+
+    my_rating = rating_service.get_user_rating_for_post(
+        post_id=post_id,
+        user_id=user_id
+    )
+
+    return jsonify({
+        'ratings': [
+            rating_to_dict(rating)
+            for rating in ratings
+        ],
+        'average': round(average, 1),
+        'count': count,
+        'my_rating': (
+            rating_to_dict(my_rating)
+            if my_rating
+            else None
+        )
+    }), 200
+
+
+# =========================
+# CREATE RATING
+# =========================
+
 @bp.route('/', methods=['POST'])
 @token_required
-@role_required('customer')
+@role_required(
+    'customer',
+    'film_lab_owner',
+    'photography_expert'
+)
 def create_rating():
+
     data = request.get_json()
 
     if not data:
@@ -55,9 +133,14 @@ def create_rating():
             'message': 'Invalid request'
         }), 400
 
-    if not data.get('order_id'):
+    if data.get('target_type') != 'post':
         return jsonify({
-            'message': 'order_id is required'
+            'message': 'target_type must be post'
+        }), 400
+
+    if not data.get('target_id'):
+        return jsonify({
+            'message': 'target_id is required'
         }), 400
 
     if data.get('rating') is None:
@@ -65,7 +148,10 @@ def create_rating():
             'message': 'rating is required'
         }), 400
 
-    if not isinstance(data.get('rating'), int) or not 1 <= data.get('rating') <= 5:
+    if (
+        not isinstance(data.get('rating'), int)
+        or not 1 <= data.get('rating') <= 5
+    ):
         return jsonify({
             'message': 'rating must be between 1 and 5'
         }), 400
@@ -78,24 +164,25 @@ def create_rating():
     )
 
     return jsonify({
-        'message': 'Rating created successfully',
-        'rating': {
-            'id': str(rating.id),
-            'user_id': str(rating.user_id),
-            'order_id': str(rating.order_id),
-            'rating': rating.rating,
-            'review_text': rating.review_text
-        }
-    }), 201
+        'message': 'Rating saved successfully',
+        'rating': rating_to_dict(rating)
+    }), 200
 
+
+# =========================
+# GET RATING BY ID
+# =========================
 
 @bp.route('/<uuid:rating_id>', methods=['GET'])
 @token_required
 @role_required(
     'customer',
+    'film_lab_owner',
+    'photography_expert',
     'admin'
 )
 def get_rating(rating_id):
+
     user_id = request.user.get('user_id')
     role = request.user.get('role')
 
@@ -118,30 +205,40 @@ def get_rating(rating_id):
             )
         }), 403
 
-    return jsonify({
-        'id': str(rating.id),
-        'user_id': str(rating.user_id),
-        'order_id': str(rating.order_id),
-        'rating': rating.rating,
-        'review_text': rating.review_text,
-        'created_at': rating.created_at,
-        'updated_at': rating.updated_at
-    }), 200
+    return jsonify(
+        rating_to_dict(rating)
+    ), 200
 
+
+# =========================
+# UPDATE RATING
+# =========================
 
 @bp.route('/<uuid:rating_id>', methods=['PUT'])
 @token_required
 @role_required(
     'customer',
+    'film_lab_owner',
+    'photography_expert',
     'admin'
 )
 def update_rating(rating_id):
+
     data = request.get_json()
 
     if not data:
         return jsonify({
             'message': 'Invalid request'
         }), 400
+
+    if 'rating' in data:
+        if (
+            not isinstance(data.get('rating'), int)
+            or not 1 <= data.get('rating') <= 5
+        ):
+            return jsonify({
+                'message': 'rating must be between 1 and 5'
+            }), 400
 
     user_id = request.user.get('user_id')
     role = request.user.get('role')
@@ -165,23 +262,24 @@ def update_rating(rating_id):
 
     return jsonify({
         'message': 'Rating updated successfully',
-        'rating': {
-            'id': str(rating.id),
-            'user_id': str(rating.user_id),
-            'order_id': str(rating.order_id),
-            'rating': rating.rating,
-            'review_text': rating.review_text
-        }
+        'rating': rating_to_dict(rating)
     }), 200
 
+
+# =========================
+# DELETE RATING
+# =========================
 
 @bp.route('/<uuid:rating_id>', methods=['DELETE'])
 @token_required
 @role_required(
     'customer',
+    'film_lab_owner',
+    'photography_expert',
     'admin'
 )
 def delete_rating(rating_id):
+
     user_id = request.user.get('user_id')
     role = request.user.get('role')
 

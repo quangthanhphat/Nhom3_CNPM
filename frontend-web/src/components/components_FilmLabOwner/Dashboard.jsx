@@ -1,17 +1,1015 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import './Dashboard.css'
+import DeliveryManagement from './DeliveryManagement'
 import FilmLabManagement from './FilmLabManagement'
 import ServiceManagement from './ServiceManagement'
+import OrderManagement from './OrderManagement'
+import Community from './Community'
+
+const API_URL = 'http://127.0.0.1:9999'
 
 function Dashboard({ user, onLogout }) {
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [currentPage, setCurrentPage] = useState('dashboard')
+  const [currentPage, setCurrentPage] = useState('home')
 
-  const handlePageChange = (page) => {
+  const [labData, setLabData] = useState(null)
+
+  const [photoMenuOpen, setPhotoMenuOpen] = useState(false)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const [photoError, setPhotoError] = useState('')
+
+  const [profileImage, setProfileImage] = useState(null)
+  const [coverImage, setCoverImage] = useState(null)
+
+
+  // =========================
+  // REVENUE
+  // =========================
+
+  const [payments, setPayments] = useState([])
+  const [revenueLoading, setRevenueLoading] = useState(false)
+  const [revenueError, setRevenueError] = useState('')
+
+  // =========================
+  // GET IMAGE URL
+  // =========================
+
+  const getImageUrl = (storagePath) => {
+    if (!storagePath) {
+      return null
+    }
+
+    if (
+      storagePath.startsWith('http://') ||
+      storagePath.startsWith('https://')
+    ) {
+      return storagePath
+    }
+
+    return `${API_URL}/film-labs/images/${storagePath}`
+  }
+
+
+  // =========================
+  // LOAD FILM LAB
+  // =========================
+
+  const loadFilmLab = async () => {
+    try {
+      const token = localStorage.getItem('token')
+
+      if (!token || !user?.id) {
+        console.error(
+          'User information is not available'
+        )
+        return
+      }
+
+      const response = await fetch(
+        `${API_URL}/film-labs/`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+
+      if (!response.ok) {
+        console.error(
+          'Failed to load film labs:',
+          response.status
+        )
+        return
+      }
+
+      const data = await response.json()
+
+      const labs = Array.isArray(data)
+        ? data
+        : data.film_labs ||
+          data.data ||
+          []
+
+      const ownLab = labs.find(
+        (lab) =>
+          String(lab.owner_id) ===
+          String(user.id)
+      )
+
+      if (!ownLab) {
+        console.error(
+          'Film lab not found for current user'
+        )
+        return
+      }
+
+      setLabData(ownLab)
+
+      setProfileImage(
+        ownLab.profile_image_path || null
+      )
+
+      setCoverImage(
+        ownLab.cover_image_path || null
+      )
+
+    } catch (error) {
+      console.error(
+        'Failed to load film lab:',
+        error
+      )
+    }
+  }
+
+
+  // =========================
+  // LOAD PAYMENTS
+  // =========================
+
+  const loadPayments = async () => {
+    try {
+      const token = localStorage.getItem('token')
+
+      if (!token) {
+        return
+      }
+
+      setRevenueLoading(true)
+      setRevenueError('')
+
+      const response = await fetch(
+        `${API_URL}/payments/`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+          'Failed to load payment data'
+        )
+      }
+
+      const paymentList =
+        Array.isArray(data)
+          ? data
+          : data.payments ||
+            data.data ||
+            []
+
+      setPayments(paymentList)
+
+    } catch (error) {
+      console.error(
+        'Failed to load payments:',
+        error
+      )
+
+      setRevenueError(
+        error.message ||
+        'Failed to load revenue data'
+      )
+
+    } finally {
+      setRevenueLoading(false)
+    }
+  }
+
+  // =========================
+  // INITIAL LOAD
+  // =========================
+
+  useEffect(() => {
+    if (user?.id) {
+      loadFilmLab()
+      loadPayments()
+    }
+  }, [user])
+
+  // =========================
+  // RELOAD REVENUE
+  // =========================
+
+  useEffect(() => {
+    if (
+      currentPage === 'revenueStatistics' &&
+      user?.id
+    ) {
+      loadPayments()
+    }
+  }, [currentPage])
+
+  // =========================
+  // NAVIGATION
+  // =========================
+
+  const handleNavigation = (page) => {
     setCurrentPage(page)
-    setMenuOpen(false)
-    setSettingsOpen(false)
+    setSidebarOpen(false)
+  }
+
+  // =========================
+  // PROFILE IMAGE
+  // =========================
+
+  const handleProfileImageChange = async (
+    event
+  ) => {
+    const file = event.target.files?.[0]
+
+    event.target.value = ''
+
+    if (!file) {
+      return
+    }
+
+    if (!labData?.id) {
+      setPhotoError(
+        'Film lab information is not available.'
+      )
+      return
+    }
+
+    setUploadingPhoto(true)
+    setPhotoError('')
+
+    try {
+      const token = localStorage.getItem('token')
+
+      const formData = new FormData()
+      formData.append('image', file)
+
+      const response = await fetch(
+        `${API_URL}/film-labs/${labData.id}/profile-image`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      )
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+          'Failed to update profile image'
+        )
+      }
+
+      setProfileImage(
+        data.profile_image_path
+      )
+
+      setLabData((previousLab) => ({
+        ...previousLab,
+        profile_image_path:
+          data.profile_image_path,
+      }))
+
+      setPhotoMenuOpen(false)
+
+    } catch (error) {
+      console.error(
+        'Failed to update profile image:',
+        error
+      )
+
+      setPhotoError(
+        error.message ||
+        'Failed to update profile image'
+      )
+
+    } finally {
+      setUploadingPhoto(false)
+    }
+  }
+
+  // =========================
+  // COVER IMAGE
+  // =========================
+
+  const handleCoverImageChange = async (
+    event
+  ) => {
+    const file = event.target.files?.[0]
+
+    event.target.value = ''
+
+    if (!file) {
+      return
+    }
+
+    if (!labData?.id) {
+      setPhotoError(
+        'Film lab information is not available.'
+      )
+      return
+    }
+
+    setUploadingPhoto(true)
+    setPhotoError('')
+
+    try {
+      const token = localStorage.getItem('token')
+
+      const formData = new FormData()
+      formData.append('image', file)
+
+      const response = await fetch(
+        `${API_URL}/film-labs/${labData.id}/cover-image`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      )
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+          'Failed to update cover image'
+        )
+      }
+
+      setCoverImage(
+        data.cover_image_path
+      )
+
+      setLabData((previousLab) => ({
+        ...previousLab,
+        cover_image_path:
+          data.cover_image_path,
+      }))
+
+      setPhotoMenuOpen(false)
+
+    } catch (error) {
+      console.error(
+        'Failed to update cover image:',
+        error
+      )
+
+      setPhotoError(
+        error.message ||
+        'Failed to update cover image'
+      )
+
+    } finally {
+      setUploadingPhoto(false)
+    }
+  }
+
+
+  // =========================
+  // REVENUE HELPERS
+  // =========================
+
+  const getCompletedPayments = () => {
+    return payments.filter(
+      (payment) =>
+        String(payment.status || '').toLowerCase() ===
+        'completed' &&
+        payment.paid_at
+    )
+  }
+
+  const getPaymentAmount = (payment) => {
+    const amount = Number(
+      payment.amount || 0
+    )
+
+    return Number.isFinite(amount)
+      ? amount
+      : 0
+  }
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat(
+      'vi-VN',
+      {
+        style: 'currency',
+        currency: 'VND',
+        maximumFractionDigits: 0,
+      }
+    ).format(amount)
+  }
+
+  const formatMonthLabel = (
+    year,
+    month
+  ) => {
+    return `${String(month).padStart(2, '0')}/${year}`
+  }
+
+  // =========================
+  // REVENUE PAGE
+  // =========================
+
+  const renderRevenueStatistics = () => {
+    const completedPayments =
+      getCompletedPayments()
+
+    const totalRevenue =
+      completedPayments.reduce(
+        (total, payment) =>
+          total +
+          getPaymentAmount(payment),
+        0
+      )
+
+    const now = new Date()
+
+    const currentYear =
+      now.getFullYear()
+
+    const currentMonth =
+      now.getMonth()
+
+    const thisMonthRevenue =
+      completedPayments
+        .filter((payment) => {
+          const paidDate =
+            new Date(payment.paid_at)
+
+          return (
+            paidDate.getFullYear() ===
+              currentYear &&
+            paidDate.getMonth() ===
+              currentMonth
+          )
+        })
+        .reduce(
+          (total, payment) =>
+            total +
+            getPaymentAmount(payment),
+          0
+        )
+
+    // =========================
+    // MONTHLY REVENUE
+    // =========================
+
+    const monthlyMap = {}
+
+    completedPayments.forEach(
+      (payment) => {
+        const paidDate =
+          new Date(payment.paid_at)
+
+        if (
+          Number.isNaN(
+            paidDate.getTime()
+          )
+        ) {
+          return
+        }
+
+        const year =
+          paidDate.getFullYear()
+
+        const month =
+          paidDate.getMonth() + 1
+
+        const key =
+          `${year}-${String(month).padStart(2, '0')}`
+
+        if (!monthlyMap[key]) {
+          monthlyMap[key] = {
+            year,
+            month,
+            revenue: 0,
+          }
+        }
+
+        monthlyMap[key].revenue +=
+          getPaymentAmount(payment)
+      }
+    )
+
+    const monthlyRevenue =
+      Object.values(monthlyMap)
+        .sort((a, b) => {
+          if (a.year !== b.year) {
+            return b.year - a.year
+          }
+
+          return b.month - a.month
+        })
+
+    const maxRevenue =
+      monthlyRevenue.length > 0
+        ? Math.max(
+            ...monthlyRevenue.map(
+              (item) =>
+                item.revenue
+            )
+          )
+        : 0
+
+    return (
+      <div className="revenue-page">
+
+        {/* =========================
+            HEADER
+        ========================= */}
+
+        <div className="revenue-header">
+
+          <div>
+            <h1>
+              Revenue Statistics
+            </h1>
+
+            <p>
+              Track your film lab revenue
+              from successful payments.
+            </p>
+          </div>
+
+          <button
+            className="revenue-refresh-button"
+            onClick={loadPayments}
+            disabled={revenueLoading}
+          >
+            {revenueLoading
+              ? 'Loading...'
+              : '↻ Refresh'}
+          </button>
+
+        </div>
+
+        {/* =========================
+            ERROR
+        ========================= */}
+
+        {revenueError && (
+          <div className="revenue-error">
+            {revenueError}
+          </div>
+        )}
+
+        {/* =========================
+            SUMMARY
+        ========================= */}
+
+        <div className="revenue-summary">
+
+          <div className="revenue-card">
+
+            <div className="revenue-card-icon">
+              💰
+            </div>
+
+            <div>
+              <span className="revenue-card-label">
+                Total Revenue
+              </span>
+
+              <strong className="revenue-card-value">
+                {formatCurrency(
+                  totalRevenue
+                )}
+              </strong>
+            </div>
+
+          </div>
+
+          <div className="revenue-card">
+
+            <div className="revenue-card-icon">
+              📅
+            </div>
+
+            <div>
+              <span className="revenue-card-label">
+                This Month
+              </span>
+
+              <strong className="revenue-card-value">
+                {formatCurrency(
+                  thisMonthRevenue
+                )}
+              </strong>
+            </div>
+
+          </div>
+
+          <div className="revenue-card">
+
+            <div className="revenue-card-icon">
+              💳
+            </div>
+
+            <div>
+              <span className="revenue-card-label">
+                Successful Payments
+              </span>
+
+              <strong className="revenue-card-value">
+                {completedPayments.length}
+              </strong>
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* =========================
+            MONTHLY REVENUE
+        ========================= */}
+
+        <div className="revenue-section">
+
+          <div className="revenue-section-header">
+
+            <div>
+              <h2>
+                Monthly Revenue
+              </h2>
+
+              <p>
+                Revenue based on payment
+                completion date.
+              </p>
+            </div>
+
+          </div>
+
+          {revenueLoading ? (
+
+            <div className="revenue-empty">
+              Loading revenue data...
+            </div>
+
+          ) : monthlyRevenue.length === 0 ? (
+
+            <div className="revenue-empty">
+              No successful payments yet.
+            </div>
+
+          ) : (
+
+            <div className="monthly-revenue-list">
+
+              {monthlyRevenue.map(
+                (item) => {
+
+                  const percentage =
+                    maxRevenue > 0
+                      ? (
+                          item.revenue /
+                          maxRevenue
+                        ) * 100
+                      : 0
+
+                  return (
+                    <div
+                      className="monthly-revenue-row"
+                      key={`${item.year}-${item.month}`}
+                    >
+
+                      <div className="monthly-revenue-info">
+
+                        <span className="monthly-revenue-month">
+                          {formatMonthLabel(
+                            item.year,
+                            item.month
+                          )}
+                        </span>
+
+                        <strong>
+                          {formatCurrency(
+                            item.revenue
+                          )}
+                        </strong>
+
+                      </div>
+
+                      <div className="monthly-revenue-bar-wrapper">
+
+                        <div
+                          className="monthly-revenue-bar"
+                          style={{
+                            width:
+                              `${percentage}%`,
+                          }}
+                        />
+
+                      </div>
+
+                    </div>
+                  )
+                }
+              )}
+
+            </div>
+
+          )}
+
+        </div>
+
+        {/* =========================
+            PAYMENT DETAILS
+        ========================= */}
+
+        <div className="revenue-section">
+
+          <div className="revenue-section-header">
+
+            <div>
+              <h2>
+                Successful Payments
+              </h2>
+
+              <p>
+                Payments included in revenue.
+              </p>
+            </div>
+
+          </div>
+
+          {completedPayments.length === 0 ? (
+
+            <div className="revenue-empty">
+              No completed payments.
+            </div>
+
+          ) : (
+
+            <div className="revenue-payment-table-wrapper">
+
+              <table className="revenue-payment-table">
+
+                <thead>
+                  <tr>
+                    <th>
+                      Payment
+                    </th>
+
+                    <th>
+                      Paid At
+                    </th>
+
+                    <th>
+                      Method
+                    </th>
+
+                    <th>
+                      Amount
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+
+                  {completedPayments
+                    .slice()
+                    .sort(
+                      (a, b) =>
+                        new Date(
+                          b.paid_at
+                        ) -
+                        new Date(
+                          a.paid_at
+                        )
+                    )
+                    .map(
+                      (payment) => (
+
+                        <tr
+                          key={
+                            payment.id
+                          }
+                        >
+
+                          <td>
+                            <strong>
+                              {payment.id
+                                ? String(
+                                    payment.id
+                                  ).slice(
+                                    0,
+                                    8
+                                  )
+                                : 'Payment'}
+                            </strong>
+                          </td>
+
+                          <td>
+                            {payment.paid_at
+                              ? new Date(
+                                  payment.paid_at
+                                ).toLocaleString(
+                                  'vi-VN'
+                                )
+                              : '-'}
+                          </td>
+
+                          <td>
+                            {payment.payment_method ||
+                              payment.method ||
+                              'Demo'}
+                          </td>
+
+                          <td>
+                            <strong>
+                              {formatCurrency(
+                                getPaymentAmount(
+                                  payment
+                                )
+                              )}
+                            </strong>
+                          </td>
+
+                        </tr>
+
+                      )
+                    )}
+
+                </tbody>
+
+              </table>
+
+            </div>
+
+          )}
+
+        </div>
+
+      </div>
+    )
+  }
+
+  // =========================
+  // HOME
+  // =========================
+
+  const renderHome = () => {
+    const profileImageUrl =
+      getImageUrl(profileImage)
+
+    const coverImageUrl =
+      getImageUrl(coverImage)
+
+    return (
+      <div className="home-page">
+
+        {/* =========================
+            PROFILE
+        ========================= */}
+
+        <div className="profile-section">
+
+          <div
+            className="profile-cover"
+            style={
+              coverImageUrl
+                ? {
+                    backgroundImage:
+                      `url("${coverImageUrl}")`,
+                  }
+                : {}
+            }
+          />
+
+          <div className="profile-info">
+
+            {/* PROFILE AVATAR */}
+
+            <div className="profile-avatar-wrapper">
+
+              <div
+                className="profile-avatar"
+                style={
+                  profileImageUrl
+                    ? {
+                        backgroundImage:
+                          `url("${profileImageUrl}")`,
+                      }
+                    : {}
+                }
+              >
+                {!profileImageUrl && '📷'}
+              </div>
+
+            </div>
+
+            {/* LAB INFORMATION */}
+
+            <div className="profile-details">
+
+              <h1>
+                {labData?.name ||
+                  'Film Lab'}
+              </h1>
+
+              <p className="profile-type">
+                Film Lab
+              </p>
+
+              <p className="profile-description">
+                {labData?.description ||
+                  'Film photography lab and processing services.'}
+              </p>
+
+              <div className="profile-contact">
+
+                {labData?.phone && (
+                  <span>
+                    📞 {labData.phone}
+                  </span>
+                )}
+
+                {(labData?.address ||
+                  labData?.district ||
+                  labData?.city) && (
+                  <span>
+                    📍{' '}
+                    {[
+                      labData?.address,
+                      labData?.district,
+                      labData?.city,
+                    ]
+                      .filter(Boolean)
+                      .join(', ')}
+                  </span>
+                )}
+
+              </div>
+
+            </div>
+
+            {/* CHANGE PHOTO */}
+
+            <div className="profile-actions">
+
+              <button
+                className="edit-profile-button"
+                disabled={
+                  !labData ||
+                  uploadingPhoto
+                }
+                onClick={() => {
+                  setPhotoError('')
+                  setPhotoMenuOpen(true)
+                }}
+              >
+                📷 Change Photo
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    )
+  }
+
+  // =========================
+  // CURRENT PAGE
+  // =========================
+
+  const renderCurrentPage = () => {
+    switch (currentPage) {
+
+      case 'filmLabManagement':
+        return <FilmLabManagement />
+
+      case 'serviceManagement':
+        return <ServiceManagement />
+
+      case 'orderManagement':
+        return <OrderManagement />
+
+      case 'revenueStatistics':
+        return renderRevenueStatistics()
+      case 'delivery':
+        return <DeliveryManagement />
+
+      case 'community':
+        return <Community />
+    
+
+      default:
+        return renderHome()
+    }
   }
 
   return (
@@ -23,344 +1021,284 @@ function Dashboard({ user, onLogout }) {
 
       <header className="dashboard-header">
 
-        {/* LEFT MENU */}
-
         <button
           className="menu-button"
-          onClick={() => {
-            setMenuOpen(!menuOpen)
-            setSettingsOpen(false)
-          }}
+          onClick={() =>
+            setSidebarOpen(
+              !sidebarOpen
+            )
+          }
         >
           ☰
         </button>
-
-        {/* TITLE */}
 
         <div className="header-title">
           Film Lab Platform
         </div>
 
-        {/* RIGHT SETTINGS */}
-
         <button
           className="settings-button"
-          onClick={() => {
-            setSettingsOpen(!settingsOpen)
-            setMenuOpen(false)
-          }}
+          onClick={() =>
+            setSettingsOpen(
+              !settingsOpen
+            )
+          }
         >
           ⚙
         </button>
 
-      </header>
+        {settingsOpen && (
 
+          <div className="settings-menu">
 
-      {/* =========================
-          SIDE MENU
-      ========================= */}
+            <button>
+              Account Information
+            </button>
 
-      {menuOpen && (
-        <aside className="side-menu">
+            <button>
+              Change Password
+            </button>
 
-          <div className="side-menu-title">
-            Film Lab Owner
+            <button>
+              Report a Problem
+            </button>
+
+            <div className="settings-divider" />
+
+            <button
+              className="logout-menu-button"
+              onClick={onLogout}
+            >
+              Logout
+            </button>
+
           </div>
 
+        )}
+
+      </header>
+
+      {/* =========================
+          SIDEBAR
+      ========================= */}
+
+      {sidebarOpen && (
+
+        <aside className="sidebar">
+
           <button
-            onClick={() => handlePageChange('dashboard')}
+            className={
+              currentPage === 'home'
+                ? 'sidebar-item active'
+                : 'sidebar-item'
+            }
+            onClick={() =>
+              handleNavigation('home')
+            }
           >
-            🏠 Dashboard
+            🏠 Home
           </button>
 
           <button
-            onClick={() => handlePageChange('filmLabManagement')}
+            className={
+              currentPage ===
+              'filmLabManagement'
+                ? 'sidebar-item active'
+                : 'sidebar-item'
+            }
+            onClick={() =>
+              handleNavigation(
+                'filmLabManagement'
+              )
+            }
           >
             🏪 Film Lab Management
           </button>
 
           <button
-            onClick={() => handlePageChange('serviceManagement')}
+            className={
+              currentPage ===
+              'serviceManagement'
+                ? 'sidebar-item active'
+                : 'sidebar-item'
+            }
+            onClick={() =>
+              handleNavigation(
+                'serviceManagement'
+              )
+            }
           >
             🛠 Service Management
           </button>
 
-          <button>
+          <button
+            className={
+              currentPage ===
+              'orderManagement'
+                ? 'sidebar-item active'
+                : 'sidebar-item'
+            }
+            onClick={() =>
+              handleNavigation(
+                'orderManagement'
+              )
+            }
+          >
             📦 Order Management
           </button>
 
-          <button>
-            🔄 Processing Workflow
+          <button
+            className={
+              currentPage ===
+              'revenueStatistics'
+                ? 'sidebar-item active'
+                : 'sidebar-item'
+            }
+            onClick={() =>
+              handleNavigation(
+                'revenueStatistics'
+              )
+            }
+          >
+            💰 Revenue Statistics
           </button>
 
-          <button>
-            💳 Payment
-          </button>
-
-          <button>
+          <button
+            className={
+              currentPage === 'delivery'
+                ? 'sidebar-item active'
+                : 'sidebar-item'
+            }
+            onClick={() =>
+              handleNavigation(
+                'delivery'
+              )
+            }
+          >
             🚚 Delivery
           </button>
 
-          <button>
-            📊 Reports
+          <button
+            className={
+              currentPage === 'community'
+                ? 'sidebar-item active'
+                : 'sidebar-item'
+            }
+            onClick={() =>
+              handleNavigation(
+                'community'
+              )
+            }
+          >
+            👥 Community
           </button>
 
         </aside>
+
       )}
 
-
       {/* =========================
-          SETTINGS MENU
+          MAIN
       ========================= */}
 
-      {settingsOpen && (
-        <div className="settings-menu">
+      <main className="dashboard-content">
+        {renderCurrentPage()}
+      </main>
 
-          <div className="settings-title">
-            ⚙ Settings
+      {/* =========================
+          CHANGE PHOTO MODAL
+      ========================= */}
+
+      {photoMenuOpen && (
+
+        <div
+          className="photo-modal-overlay"
+          onClick={() => {
+            if (!uploadingPhoto) {
+              setPhotoMenuOpen(false)
+            }
+          }}
+        >
+
+          <div
+            className="photo-modal"
+            onClick={(event) =>
+              event.stopPropagation()
+            }
+          >
+
+            <h2>
+              Change Photo
+            </h2>
+
+            <p>
+              Choose which photo you want
+              to change.
+            </p>
+
+            {photoError && (
+
+              <div className="photo-error">
+                {photoError}
+              </div>
+
+            )}
+
+            {/* PROFILE */}
+
+            <label className="photo-option">
+
+              🖼️ Change Profile Picture
+
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                disabled={uploadingPhoto}
+                onChange={
+                  handleProfileImageChange
+                }
+              />
+
+            </label>
+
+            {/* COVER */}
+
+            <label className="photo-option">
+
+              🌄 Change Cover Photo
+
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                disabled={uploadingPhoto}
+                onChange={
+                  handleCoverImageChange
+                }
+              />
+
+            </label>
+
+            {uploadingPhoto && (
+
+              <p className="uploading-text">
+                Uploading image...
+              </p>
+
+            )}
+
+            <button
+              className="photo-cancel-button"
+              disabled={uploadingPhoto}
+              onClick={() =>
+                setPhotoMenuOpen(false)
+              }
+            >
+              Cancel
+            </button>
+
           </div>
 
-          <button>
-            Account Information
-          </button>
-
-          <button>
-            Change Password
-          </button>
-
-          <button>
-            Report a Problem
-          </button>
-
-          <button onClick={onLogout}>
-            Logout
-          </button>
-
         </div>
-      )}
-
-
-      {/* =========================
-          PAGE CONTENT
-      ========================= */}
-
-      {currentPage === 'filmLabManagement' ? (
-
-        <FilmLabManagement />
-
-      ) : currentPage === 'serviceManagement' ? (
-
-        <ServiceManagement />
-
-      ) : (
-
-        <main className="dashboard-content">
-
-          {/* =========================
-              HERO
-          ========================= */}
-
-          <section className="hero-section">
-
-            <p className="hero-small-title">
-              WELCOME TO
-            </p>
-
-            <h1>
-              Film Lab Platform
-            </h1>
-
-            <p className="hero-description">
-              Connecting film photography enthusiasts
-              with film processing labs.
-            </p>
-
-            <div className="hero-image-placeholder">
-              <span>Film Photography</span>
-            </div>
-
-          </section>
-
-
-          {/* =========================
-              ABOUT
-          ========================= */}
-
-          <section className="information-section">
-
-            <h2>
-              Discover Film Lab Services
-            </h2>
-
-            <p>
-              Explore film processing services, compare
-              available options, and manage your film lab
-              operations in one platform.
-            </p>
-
-            <div className="info-cards">
-
-              <div className="info-card">
-
-                <h3>
-                  Discover
-                </h3>
-
-                <p>
-                  Find film processing services and
-                  information about film labs.
-                </p>
-
-              </div>
-
-              <div className="info-card">
-
-                <h3>
-                  Manage
-                </h3>
-
-                <p>
-                  Manage your film lab, services,
-                  orders, and processing workflow.
-                </p>
-
-              </div>
-
-              <div className="info-card">
-
-                <h3>
-                  Connect
-                </h3>
-
-                <p>
-                  Connect photographers with film
-                  processing labs.
-                </p>
-
-              </div>
-
-            </div>
-
-          </section>
-
-
-          {/* =========================
-              HOW IT WORKS
-          ========================= */}
-
-          <section className="information-section">
-
-            <h2>
-              How It Works
-            </h2>
-
-            <div className="steps">
-
-              <div className="step">
-
-                <div className="step-number">
-                  1
-                </div>
-
-                <h3>
-                  Choose a Lab
-                </h3>
-
-                <p>
-                  Explore available film labs and
-                  their services.
-                </p>
-
-              </div>
-
-
-              <div className="step">
-
-                <div className="step-number">
-                  2
-                </div>
-
-                <h3>
-                  Book a Service
-                </h3>
-
-                <p>
-                  Select a suitable processing service
-                  for your film.
-                </p>
-
-              </div>
-
-
-              <div className="step">
-
-                <div className="step-number">
-                  3
-                </div>
-
-                <h3>
-                  Process Your Film
-                </h3>
-
-                <p>
-                  Track the processing workflow and
-                  receive your processed film.
-                </p>
-
-              </div>
-
-            </div>
-
-          </section>
-
-
-          {/* =========================
-              PLATFORM
-          ========================= */}
-
-          <section className="information-section platform-section">
-
-            <h2>
-              Film Photography in One Platform
-            </h2>
-
-            <p>
-              Film Lab Platform brings film photographers
-              and film processing labs together in one
-              centralized platform.
-            </p>
-
-            <p>
-              Manage your lab information, services,
-              orders, processing workflow, payment,
-              and delivery from one place.
-            </p>
-
-          </section>
-
-
-          {/* =========================
-              FOOTER
-          ========================= */}
-
-          <footer className="dashboard-footer">
-
-            <h3>
-              Film Lab Platform
-            </h3>
-
-            <p>
-              Connecting film photography enthusiasts
-              with film processing labs.
-            </p>
-
-            <p>
-              © 2026 Film Lab Platform
-            </p>
-
-          </footer>
-
-        </main>
 
       )}
 

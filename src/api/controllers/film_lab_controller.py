@@ -1,4 +1,11 @@
-from flask import Blueprint, jsonify, request
+from flask import (
+    Blueprint,
+    jsonify,
+    request,
+    send_from_directory
+)
+
+from pathlib import Path
 
 from services.film_lab_service import FilmLabService
 from api.middleware import token_required, role_required
@@ -41,7 +48,9 @@ def get_all_film_labs():
             'address': lab.address,
             'phone': lab.phone,
             'email': lab.email,
-            'status': lab.status
+            'status': lab.status,
+            'profile_image_path': lab.profile_image_path,
+            'cover_image_path': lab.cover_image_path
         })
 
     return jsonify(result), 200
@@ -79,7 +88,9 @@ def create_film_lab():
             'address': film_lab.address,
             'phone': film_lab.phone,
             'email': film_lab.email,
-            'status': film_lab.status
+            'status': film_lab.status,
+            'profile_image_path': film_lab.profile_image_path,
+            'cover_image_path': film_lab.cover_image_path
         }
     }), 201
 
@@ -129,7 +140,9 @@ def update_film_lab(film_lab_id):
             'address': film_lab.address,
             'phone': film_lab.phone,
             'email': film_lab.email,
-            'status': film_lab.status
+            'status': film_lab.status,
+            'profile_image_path': film_lab.profile_image_path,
+            'cover_image_path': film_lab.cover_image_path
         }
     }), 200
 
@@ -199,5 +212,139 @@ def get_film_lab(film_lab_id):
         'address': lab.address,
         'phone': lab.phone,
         'email': lab.email,
-        'status': lab.status
+        'status': lab.status,
+        'profile_image_path': lab.profile_image_path,
+        'cover_image_path': lab.cover_image_path
     }), 200
+
+
+# =========================
+# UPDATE PROFILE IMAGE
+# =========================
+
+@bp.route(
+    '/<uuid:film_lab_id>/profile-image',
+    methods=['PUT']
+)
+@token_required
+@role_required(
+    'film_lab_owner',
+    'admin'
+)
+def update_profile_image(film_lab_id):
+    image_file = request.files.get('image')
+
+    if not image_file:
+        return jsonify({
+            'message': 'Image file is required'
+        }), 400
+
+    user_id = request.user.get('user_id')
+    is_admin = request.user.get('role') == 'admin'
+
+    try:
+        film_lab, error = film_lab_service.update_profile_image(
+            film_lab_id=film_lab_id,
+            image_file=image_file,
+            user_id=user_id,
+            is_admin=is_admin
+        )
+
+        if error == 'not_found':
+            return jsonify({
+                'message': 'Film lab not found'
+            }), 404
+
+        if error == 'forbidden':
+            return jsonify({
+                'message': 'You can only update your own film lab'
+            }), 403
+
+        return jsonify({
+            'message': 'Profile image updated successfully',
+            'profile_image_path': film_lab.profile_image_path
+        }), 200
+
+    except ValueError as error:
+        return jsonify({
+            'message': str(error)
+        }), 400
+
+
+# =========================
+# UPDATE COVER IMAGE
+# =========================
+
+@bp.route(
+    '/<uuid:film_lab_id>/cover-image',
+    methods=['PUT']
+)
+@token_required
+@role_required(
+    'film_lab_owner',
+    'admin'
+)
+def update_cover_image(film_lab_id):
+    image_file = request.files.get('image')
+
+    if not image_file:
+        return jsonify({
+            'message': 'Image file is required'
+        }), 400
+
+    user_id = request.user.get('user_id')
+    is_admin = request.user.get('role') == 'admin'
+
+    try:
+        film_lab, error = film_lab_service.update_cover_image(
+            film_lab_id=film_lab_id,
+            image_file=image_file,
+            user_id=user_id,
+            is_admin=is_admin
+        )
+
+        if error == 'not_found':
+            return jsonify({
+                'message': 'Film lab not found'
+            }), 404
+
+        if error == 'forbidden':
+            return jsonify({
+                'message': 'You can only update your own film lab'
+            }), 403
+
+        return jsonify({
+            'message': 'Cover image updated successfully',
+            'cover_image_path': film_lab.cover_image_path
+        }), 200
+
+    except ValueError as error:
+        return jsonify({
+            'message': str(error)
+        }), 400
+
+
+# =========================
+# SERVE FILM LAB IMAGES
+# =========================
+
+@bp.route(
+    '/images/<path:storage_path>',
+    methods=['GET']
+)
+def serve_film_lab_image(storage_path):
+    from services.storage_service import STORAGE_DIR
+
+    storage_path = storage_path.replace('\\', '/')
+
+    file_path = STORAGE_DIR / storage_path
+
+    if not file_path.exists() or not file_path.is_file():
+        return jsonify({
+            'message': 'Image not found'
+        }), 404
+
+    return send_from_directory(
+        str(file_path.parent),
+        file_path.name
+    )

@@ -77,6 +77,8 @@ class FilmLabs(Base):
     phone: Mapped[Optional[str]] = mapped_column(String(20))
     email: Mapped[Optional[str]] = mapped_column(String(255))
     updated_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
+    profile_image_path: Mapped[Optional[str]] = mapped_column(Text)
+    cover_image_path: Mapped[Optional[str]] = mapped_column(Text)
 
     services: Mapped[list['Services']] = relationship('Services', back_populates='film_lab')
     orders: Mapped[list['Orders']] = relationship('Orders', back_populates='film_lab')
@@ -174,6 +176,7 @@ class Posts(Base):
 
     comments: Mapped[list['Comments']] = relationship('Comments', back_populates='post')
     knowledge_base: Mapped[list['KnowledgeBase']] = relationship('KnowledgeBase', back_populates='post')
+    post_images: Mapped[list['PostImages']] = relationship('PostImages', back_populates='post')
 
 
 class Products(Base):
@@ -377,6 +380,22 @@ class PhotowalkRegistrations(Base):
     photowalk: Mapped['Photowalks'] = relationship('Photowalks', back_populates='photowalk_registrations')
 
 
+class PostImages(Base):
+    __tablename__ = 'post_images'
+    __table_args__ = (
+        ForeignKeyConstraint(['post_id'], ['public.posts.id'], ondelete='CASCADE', name='fk_post_images_post'),
+        PrimaryKeyConstraint('id', name='post_images_pkey'),
+        {'schema': 'public'}
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('gen_random_uuid()'))
+    post_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    image_path: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
+
+    post: Mapped['Posts'] = relationship('Posts', back_populates='post_images')
+
+
 class Services(Base):
     __tablename__ = 'services'
     __table_args__ = (
@@ -445,6 +464,8 @@ class Orders(Base):
     status: Mapped[str] = mapped_column(String(30), nullable=False, server_default=text("'pending'::character varying"))
     total_amount: Mapped[decimal.Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('1'))
+    delivery_type: Mapped[str] = mapped_column(String(20), nullable=False, server_default=text("'pickup'::character varying"))
     processing_options: Mapped[Optional[str]] = mapped_column(Text)
     scanning_quality: Mapped[Optional[str]] = mapped_column(Text)
     printing_requirements: Mapped[Optional[str]] = mapped_column(Text)

@@ -40,6 +40,18 @@ class OrderModel(Base):
         nullable=False
     )
 
+    quantity = Column(
+        Integer,
+        nullable=False,
+        default=1
+    )
+
+    delivery_type = Column(
+        String(20),
+        nullable=False,
+        default='pickup'
+    )
+
     processing_options = Column(
         Text,
         nullable=True

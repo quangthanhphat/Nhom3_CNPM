@@ -1,6 +1,6 @@
-
 from infrastructure.repositories.comment_repository import CommentRepository
 from infrastructure.models.generated_models import Comments
+
 
 class CommentService:
 

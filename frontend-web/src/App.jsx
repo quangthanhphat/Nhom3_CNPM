@@ -2,6 +2,7 @@ import { useState } from 'react'
 import './App.css'
 import Register from './components/components_Common/Register'
 import Dashboard from './components/components_FilmLabOwner/Dashboard'
+import Dashboard_Admin from './components/components_Admin/Dashboard_Admin'
 
 function App() {
   const [showRegister, setShowRegister] = useState(false)
@@ -97,6 +98,18 @@ function App() {
   // =========================
 
   if (loggedInUser) {
+
+    // ADMIN
+    if (loggedInUser.role === 'admin') {
+      return (
+        <Dashboard_Admin
+          user={loggedInUser}
+          onLogout={handleLogout}
+        />
+      )
+    }
+
+    // FILM LAB OWNER
     return (
       <Dashboard
         user={loggedInUser}

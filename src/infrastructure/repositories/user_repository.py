@@ -32,3 +32,8 @@ class UserRepository:
             .filter(UserModel.id == user_id)
             .first()
         )
+
+    def update(self, user):
+        self.session.commit()
+        self.session.refresh(user)
+        return user
