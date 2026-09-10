@@ -22,6 +22,18 @@ function Dashboard({ user, onLogout }) {
   const [profileImage, setProfileImage] = useState(null)
   const [coverImage, setCoverImage] = useState(null)
 
+  // =========================
+  // SUPPORT
+  // =========================
+
+  const [supportMenuOpen, setSupportMenuOpen] = useState(false)
+  const [supportSubject, setSupportSubject] = useState('')
+  const [supportMessage, setSupportMessage] = useState('')
+  const [supportTickets, setSupportTickets] = useState([])
+  const [supportLoading, setSupportLoading] = useState(false)
+  const [supportSubmitting, setSupportSubmitting] = useState(false)
+  const [supportError, setSupportError] = useState('')
+  const [supportSuccess, setSupportSuccess] = useState('')
 
   // =========================
   // REVENUE
@@ -49,7 +61,6 @@ function Dashboard({ user, onLogout }) {
 
     return `${API_URL}/film-labs/images/${storagePath}`
   }
-
 
   // =========================
   // LOAD FILM LAB
@@ -123,7 +134,6 @@ function Dashboard({ user, onLogout }) {
     }
   }
 
-
   // =========================
   // LOAD PAYMENTS
   // =========================
@@ -184,6 +194,62 @@ function Dashboard({ user, onLogout }) {
   }
 
   // =========================
+  // LOAD SUPPORT
+  // =========================
+
+  const loadSupportTickets = async () => {
+    try {
+      const token = localStorage.getItem('token')
+
+      if (!token) {
+        return
+      }
+
+      setSupportLoading(true)
+      setSupportError('')
+
+      const response = await fetch(
+        `${API_URL}/api/support`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+          'Failed to load support requests.'
+        )
+      }
+
+      const tickets = Array.isArray(data)
+        ? data
+        : data.data || []
+
+      setSupportTickets(tickets)
+
+    } catch (error) {
+      console.error(
+        'Failed to load support tickets:',
+        error
+      )
+
+      setSupportError(
+        error.message ||
+        'Failed to load support requests.'
+      )
+
+    } finally {
+      setSupportLoading(false)
+    }
+  }
+
+  // =========================
   // INITIAL LOAD
   // =========================
 
@@ -214,6 +280,124 @@ function Dashboard({ user, onLogout }) {
   const handleNavigation = (page) => {
     setCurrentPage(page)
     setSidebarOpen(false)
+  }
+
+  // =========================
+  // OPEN SUPPORT
+  // =========================
+
+  const handleOpenSupport = () => {
+    setSettingsOpen(false)
+
+    setSupportSubject('')
+    setSupportMessage('')
+    setSupportError('')
+    setSupportSuccess('')
+
+    setSupportMenuOpen(true)
+
+    loadSupportTickets()
+  }
+
+  // =========================
+  // CLOSE SUPPORT
+  // =========================
+
+  const handleCloseSupport = () => {
+    if (supportSubmitting) {
+      return
+    }
+
+    setSupportMenuOpen(false)
+    setSupportError('')
+    setSupportSuccess('')
+  }
+
+  // =========================
+  // SUBMIT SUPPORT
+  // =========================
+
+  const handleSubmitSupport = async () => {
+    if (!supportSubject.trim()) {
+      setSupportError(
+        'Please enter a subject.'
+      )
+      return
+    }
+
+    if (!supportMessage.trim()) {
+      setSupportError(
+        'Please describe your problem.'
+      )
+      return
+    }
+
+    try {
+      const token = localStorage.getItem('token')
+
+      if (!token) {
+        setSupportError(
+          'Authentication token not found.'
+        )
+        return
+      }
+
+      setSupportSubmitting(true)
+      setSupportError('')
+      setSupportSuccess('')
+
+      const response = await fetch(
+        `${API_URL}/api/support`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            subject:
+              supportSubject.trim(),
+            message:
+              supportMessage.trim(),
+          }),
+        }
+      )
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+          'Failed to submit support request.'
+        )
+      }
+
+      setSupportTickets((previous) => [
+        data,
+        ...previous,
+      ])
+
+      setSupportSubject('')
+      setSupportMessage('')
+
+      setSupportSuccess(
+        'Your support request has been submitted successfully.'
+      )
+
+    } catch (error) {
+      console.error(
+        'Failed to submit support request:',
+        error
+      )
+
+      setSupportError(
+        error.message ||
+        'Failed to submit support request.'
+      )
+
+    } finally {
+      setSupportSubmitting(false)
+    }
   }
 
   // =========================
@@ -374,7 +558,6 @@ function Dashboard({ user, onLogout }) {
     }
   }
 
-
   // =========================
   // REVENUE HELPERS
   // =========================
@@ -460,10 +643,6 @@ function Dashboard({ user, onLogout }) {
           0
         )
 
-    // =========================
-    // MONTHLY REVENUE
-    // =========================
-
     const monthlyMap = {}
 
     completedPayments.forEach(
@@ -524,10 +703,6 @@ function Dashboard({ user, onLogout }) {
     return (
       <div className="revenue-page">
 
-        {/* =========================
-            HEADER
-        ========================= */}
-
         <div className="revenue-header">
 
           <div>
@@ -553,19 +728,11 @@ function Dashboard({ user, onLogout }) {
 
         </div>
 
-        {/* =========================
-            ERROR
-        ========================= */}
-
         {revenueError && (
           <div className="revenue-error">
             {revenueError}
           </div>
         )}
-
-        {/* =========================
-            SUMMARY
-        ========================= */}
 
         <div className="revenue-summary">
 
@@ -628,10 +795,6 @@ function Dashboard({ user, onLogout }) {
           </div>
 
         </div>
-
-        {/* =========================
-            MONTHLY REVENUE
-        ========================= */}
 
         <div className="revenue-section">
 
@@ -722,10 +885,6 @@ function Dashboard({ user, onLogout }) {
           )}
 
         </div>
-
-        {/* =========================
-            PAYMENT DETAILS
-        ========================= */}
 
         <div className="revenue-section">
 
@@ -869,10 +1028,6 @@ function Dashboard({ user, onLogout }) {
     return (
       <div className="home-page">
 
-        {/* =========================
-            PROFILE
-        ========================= */}
-
         <div className="profile-section">
 
           <div
@@ -888,8 +1043,6 @@ function Dashboard({ user, onLogout }) {
           />
 
           <div className="profile-info">
-
-            {/* PROFILE AVATAR */}
 
             <div className="profile-avatar-wrapper">
 
@@ -908,8 +1061,6 @@ function Dashboard({ user, onLogout }) {
               </div>
 
             </div>
-
-            {/* LAB INFORMATION */}
 
             <div className="profile-details">
 
@@ -953,8 +1104,6 @@ function Dashboard({ user, onLogout }) {
               </div>
 
             </div>
-
-            {/* CHANGE PHOTO */}
 
             <div className="profile-actions">
 
@@ -1000,12 +1149,12 @@ function Dashboard({ user, onLogout }) {
 
       case 'revenueStatistics':
         return renderRevenueStatistics()
+
       case 'delivery':
         return <DeliveryManagement />
 
       case 'community':
         return <Community />
-    
 
       default:
         return renderHome()
@@ -1059,7 +1208,9 @@ function Dashboard({ user, onLogout }) {
               Change Password
             </button>
 
-            <button>
+            <button
+              onClick={handleOpenSupport}
+            >
               Report a Problem
             </button>
 
@@ -1244,8 +1395,6 @@ function Dashboard({ user, onLogout }) {
 
             )}
 
-            {/* PROFILE */}
-
             <label className="photo-option">
 
               🖼️ Change Profile Picture
@@ -1260,8 +1409,6 @@ function Dashboard({ user, onLogout }) {
               />
 
             </label>
-
-            {/* COVER */}
 
             <label className="photo-option">
 
@@ -1295,6 +1442,244 @@ function Dashboard({ user, onLogout }) {
             >
               Cancel
             </button>
+
+          </div>
+
+        </div>
+
+      )}
+
+      {/* =========================
+          SUPPORT MODAL
+      ========================= */}
+
+      {supportMenuOpen && (
+
+        <div
+          className="support-modal-overlay"
+          onClick={handleCloseSupport}
+        >
+
+          <div
+            className="support-modal"
+            onClick={(event) =>
+              event.stopPropagation()
+            }
+          >
+
+            <div className="support-modal-header">
+
+              <div>
+                <h2>
+                  Report a Problem
+                </h2>
+
+                <p>
+                  Send a support request to the
+                  Film Lab Platform administrator.
+                </p>
+              </div>
+
+              <button
+                className="support-close-button"
+                onClick={handleCloseSupport}
+                disabled={supportSubmitting}
+              >
+                ×
+              </button>
+
+            </div>
+
+            {supportError && (
+              <div className="support-error">
+                {supportError}
+              </div>
+            )}
+
+            {supportSuccess && (
+              <div className="support-success">
+                {supportSuccess}
+              </div>
+            )}
+
+            <div className="support-form">
+
+              <label>
+                Subject
+              </label>
+
+              <input
+                type="text"
+                value={supportSubject}
+                onChange={(event) => {
+                  setSupportSubject(
+                    event.target.value
+                  )
+                  setSupportError('')
+                  setSupportSuccess('')
+                }}
+                placeholder="Enter the problem subject"
+                disabled={supportSubmitting}
+              />
+
+              <label>
+                Message
+              </label>
+
+              <textarea
+                value={supportMessage}
+                onChange={(event) => {
+                  setSupportMessage(
+                    event.target.value
+                  )
+                  setSupportError('')
+                  setSupportSuccess('')
+                }}
+                placeholder="Describe your problem..."
+                disabled={supportSubmitting}
+              />
+
+            </div>
+
+            {/* =========================
+                PREVIOUS REQUESTS
+                ========================= */}
+
+            <div className="support-history">
+
+              <div className="support-history-header">
+
+                <h3>
+                  My Support Requests
+                </h3>
+
+                <button
+                  className="support-refresh-button"
+                  onClick={loadSupportTickets}
+                  disabled={supportLoading}
+                >
+                  {supportLoading
+                    ? 'Loading...'
+                    : '↻ Refresh'}
+                </button>
+
+              </div>
+
+              {supportLoading ? (
+
+                <div className="support-empty">
+                  Loading requests...
+                </div>
+
+              ) : supportTickets.length === 0 ? (
+
+                <div className="support-empty">
+                  No support requests yet.
+                </div>
+
+              ) : (
+
+                <div className="support-ticket-list">
+
+                  {supportTickets.map(
+                    (ticket) => (
+
+                      <div
+                        className="support-ticket"
+                        key={ticket.id}
+                      >
+
+                        <div className="support-ticket-top">
+
+                          <strong>
+                            {ticket.subject}
+                          </strong>
+
+                          <span
+                            className={`support-status support-status-${String(
+                              ticket.status || ''
+                            ).toLowerCase()}`}
+                          >
+                            {ticket.status
+                              ? String(
+                                  ticket.status
+                                ).charAt(0).toUpperCase() +
+                                String(
+                                  ticket.status
+                                ).slice(1)
+                              : '-'}
+                          </span>
+
+                        </div>
+
+                        <p>
+                          {ticket.message}
+                        </p>
+
+                        {ticket.reply && (
+
+                          <div className="support-reply">
+
+                            <strong>
+                              Admin Reply
+                            </strong>
+
+                            <span>
+                              {ticket.reply}
+                            </span>
+
+                          </div>
+
+                        )}
+
+                        <small>
+                          {ticket.created_at
+                            ? new Date(
+                                ticket.created_at
+                              ).toLocaleString(
+                                'vi-VN'
+                              )
+                            : '-'}
+                        </small>
+
+                      </div>
+
+                    )
+                  )}
+
+                </div>
+
+              )}
+
+            </div>
+
+            {/* =========================
+                FOOTER
+                ========================= */}
+
+            <div className="support-modal-footer">
+
+              <button
+                className="support-cancel-button"
+                onClick={handleCloseSupport}
+                disabled={supportSubmitting}
+              >
+                Cancel
+              </button>
+
+              <button
+                className="support-submit-button"
+                onClick={
+                  handleSubmitSupport
+                }
+                disabled={supportSubmitting}
+              >
+                {supportSubmitting
+                  ? 'Sending...'
+                  : 'Send Report'}
+              </button>
+
+            </div>
 
           </div>
 

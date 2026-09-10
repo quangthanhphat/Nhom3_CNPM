@@ -2,20 +2,570 @@
   width: 100%;
   min-height: 100vh;
   position: relative;
+  background: #f5f6f8;
+  color: #222;
 }
 
-.admin-logout-button {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  padding: 10px 20px;
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.admin-header {
+  height: 64px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e5e5;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 20;
+}
+
+.admin-menu-button {
+  width: 42px;
+  height: 42px;
   border: none;
-  border-radius: 6px;
-  background: #222;
-  color: white;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 22px;
   cursor: pointer;
 }
 
-.admin-logout-button:hover {
+.admin-menu-button:hover {
+  background: #f0f0f0;
+}
+
+.admin-header-title {
+  margin-left: 14px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.admin-header-user {
+  margin-left: auto;
+  font-size: 14px;
+  font-weight: 600;
+  color: #555;
+}
+
+/* =========================================================
+   SIDEBAR
+   ========================================================= */
+
+.admin-sidebar {
+  position: absolute;
+  top: 64px;
+  left: 0;
+  width: 250px;
+  min-height: calc(100vh - 64px);
+  padding: 18px 14px;
+  box-sizing: border-box;
+  background: #ffffff;
+  border-right: 1px solid #e5e5e5;
+  z-index: 15;
+  box-shadow: 4px 0 12px rgba(0, 0, 0, 0.04);
+}
+
+.admin-sidebar-item,
+.admin-sidebar-logout {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 14px;
+  margin-bottom: 6px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #333;
+  font-size: 15px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-sidebar-item:hover {
+  background: #f1f1f1;
+}
+
+.admin-sidebar-item.active {
+  background: #222;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.admin-sidebar-divider {
+  height: 1px;
+  margin: 16px 0;
+  background: #e5e5e5;
+}
+
+.admin-sidebar-logout {
+  color: #b42318;
+}
+
+.admin-sidebar-logout:hover {
+  background: #fff1f0;
+}
+
+/* =========================================================
+   CONTENT
+   ========================================================= */
+
+.admin-content {
+  width: 100%;
+  min-height: calc(100vh - 64px);
+  padding: 32px;
+  box-sizing: border-box;
+}
+
+/* =========================================================
+   SUPPORT PAGE
+   ========================================================= */
+
+.admin-support-page {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.admin-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.admin-page-header h1 {
+  margin: 0 0 8px;
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.admin-page-header p {
+  margin: 0;
+  color: #666;
+  font-size: 15px;
+}
+
+.admin-refresh-button {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 7px;
+  background: #222;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-refresh-button:hover {
   opacity: 0.85;
+}
+
+.admin-refresh-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   ERROR
+   ========================================================= */
+
+.admin-error {
+  margin-bottom: 20px;
+  padding: 13px 16px;
+  border-radius: 8px;
+  background: #fff1f0;
+  border: 1px solid #ffc9c5;
+  color: #b42318;
+  font-size: 14px;
+}
+
+/* =========================================================
+   SUPPORT CARD
+   ========================================================= */
+
+.admin-support-card {
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.admin-support-list {
+  width: 100%;
+}
+
+.admin-support-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 22px 24px;
+  border-bottom: 1px solid #eeeeee;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.admin-support-item:last-child {
+  border-bottom: none;
+}
+
+.admin-support-item:hover {
+  background: #fafafa;
+}
+
+.admin-support-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.admin-support-main h3 {
+  margin: 0 0 8px;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.admin-support-main p {
+  margin: 0 0 10px;
+  color: #555;
+  font-size: 14px;
+  line-height: 1.5;
+
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.admin-support-main span {
+  color: #888;
+  font-size: 12px;
+}
+
+.admin-support-side {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.admin-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-open {
+  background: #fff4cc;
+  color: #8a6500;
+}
+
+.status-answered {
+  background: #e8f4ff;
+  color: #1769aa;
+}
+
+.status-closed {
+  background: #eeeeee;
+  color: #666;
+}
+
+.admin-view-button {
+  padding: 8px 14px;
+  border: 1px solid #dddddd;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #333;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.admin-view-button:hover {
+  background: #f3f3f3;
+}
+
+/* =========================================================
+   EMPTY
+   ========================================================= */
+
+.admin-empty {
+  padding: 60px 24px;
+  text-align: center;
+  color: #888;
+  font-size: 15px;
+}
+
+/* =========================================================
+   MODAL
+   ========================================================= */
+
+.admin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 100;
+}
+
+.admin-modal {
+  width: 100%;
+  max-width: 720px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+}
+
+.admin-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 24px;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.admin-modal-header h2 {
+  margin: 0 0 10px;
+  font-size: 21px;
+}
+
+.admin-modal-close {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 25px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.admin-modal-close:hover {
+  background: #f2f2f2;
+}
+
+.admin-modal-body {
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.admin-ticket-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.admin-ticket-info > div {
+  padding: 14px;
+  border-radius: 8px;
+  background: #f7f7f7;
+}
+
+.admin-ticket-info strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: #777;
+  text-transform: uppercase;
+}
+
+.admin-ticket-info span {
+  display: block;
+  word-break: break-word;
+  font-size: 13px;
+  color: #333;
+}
+
+.admin-message-section,
+.admin-reply-section,
+.admin-existing-reply {
+  margin-bottom: 22px;
+}
+
+.admin-message-section h3,
+.admin-reply-section h3,
+.admin-existing-reply h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+
+.admin-message-box {
+  padding: 15px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  background: #fafafa;
+  color: #333;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.admin-reply-section textarea {
+  width: 100%;
+  min-height: 130px;
+  padding: 13px;
+  box-sizing: border-box;
+  resize: vertical;
+  border: 1px solid #d8d8d8;
+  border-radius: 8px;
+  outline: none;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.admin-reply-section textarea:focus {
+  border-color: #777;
+}
+
+.admin-reply-section textarea:disabled {
+  background: #f5f5f5;
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   MODAL FOOTER
+   ========================================================= */
+
+.admin-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 24px;
+  border-top: 1px solid #eeeeee;
+}
+
+.admin-cancel-button,
+.admin-close-ticket-button,
+.admin-reply-button {
+  padding: 10px 16px;
+  border-radius: 7px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-cancel-button {
+  border: 1px solid #dddddd;
+  background: #ffffff;
+  color: #333;
+}
+
+.admin-cancel-button:hover {
+  background: #f3f3f3;
+}
+
+.admin-close-ticket-button {
+  border: 1px solid #d8d8d8;
+  background: #f5f5f5;
+  color: #555;
+}
+
+.admin-close-ticket-button:hover {
+  background: #e9e9e9;
+}
+
+.admin-reply-button {
+  border: none;
+  background: #222;
+  color: #ffffff;
+}
+
+.admin-reply-button:hover {
+  opacity: 0.85;
+}
+
+.admin-reply-button:disabled,
+.admin-close-ticket-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 768px) {
+  .admin-content {
+    padding: 20px;
+  }
+
+  .admin-page-header {
+    flex-direction: column;
+  }
+
+  .admin-support-item {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .admin-support-side {
+    justify-content: space-between;
+  }
+
+  .admin-ticket-info {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-modal {
+    max-height: 95vh;
+  }
+
+  .admin-modal-footer {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-header {
+    padding: 0 14px;
+  }
+
+  .admin-header-title {
+    font-size: 17px;
+  }
+
+  .admin-content {
+    padding: 16px;
+  }
+
+  .admin-page-header h1 {
+    font-size: 25px;
+  }
+
+  .admin-modal-overlay {
+    padding: 10px;
+  }
+
+  .admin-modal-header,
+  .admin-modal-body,
+  .admin-modal-footer {
+    padding: 16px;
+  }
+
+  .admin-modal-footer {
+    justify-content: stretch;
+  }
+
+  .admin-modal-footer button {
+    flex: 1;
+  }
 }

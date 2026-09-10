@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import './OrderManagement.css'
 
 function OrderManagement() {
@@ -9,6 +9,11 @@ function OrderManagement() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [updatingStatus, setUpdatingStatus] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
+  const [resultFiles, setResultFiles] = useState([])
+  const [uploadingResult, setUploadingResult] = useState(false)
+  const [resultMessage, setResultMessage] = useState('')
+  const [resultError, setResultError] = useState('')
+  const resultInputRef = useRef(null)
 
   const getToken = () => {
     return localStorage.getItem('token')
@@ -471,6 +476,7 @@ function OrderManagement() {
       if (!response.ok) {
         throw new Error(
           data.message ||
+          data.error ||
           'Cannot update order status.'
         )
       }
@@ -493,6 +499,13 @@ function OrderManagement() {
       )
 
       setSelectedOrder(newOrder)
+
+      if (
+        String(newOrder.status || '').toLowerCase() ===
+        'completed'
+      ) {
+        loadOrderResult(newOrder.id)
+      }
 
       setStatusMessage(
         `Order status updated to ${formatStatus(
@@ -570,6 +583,203 @@ function OrderManagement() {
         )}
       </div>
     )
+  }
+
+  // =========================================================
+  // ORDER RESULT
+  // =========================================================
+
+  const loadOrderResult = async (orderId) => {
+    try {
+      const token = getToken()
+
+      if (!token) {
+        throw new Error('Please login again.')
+      }
+
+      const response = await fetch(
+        `http://127.0.0.1:9999/order-results/${orderId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+          data.error ||
+          'Cannot load order result.'
+        )
+      }
+
+      setResultFiles(data.files || [])
+    } catch (err) {
+      console.error(err)
+      setResultFiles([])
+      setResultError(
+        err.message || 'Cannot load order result.'
+      )
+    }
+  }
+
+  // =========================================================
+  // UPLOAD ORDER RESULT
+  // =========================================================
+
+  const handleResultFilesSelected = async (event) => {
+    const files = Array.from(event.target.files || [])
+
+    if (!files.length || !selectedOrder) {
+      return
+    }
+
+    setUploadingResult(true)
+    setResultMessage('')
+    setResultError('')
+
+    try {
+      const token = getToken()
+
+      if (!token) {
+        throw new Error('Please login again.')
+      }
+
+      const formData = new FormData()
+
+      files.forEach((file) => {
+        formData.append('files', file)
+      })
+
+      const response = await fetch(
+        `http://127.0.0.1:9999/order-results/${selectedOrder.id}/upload`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      )
+
+      let data = {}
+
+      try {
+        data = await response.json()
+      } catch {
+        data = {}
+      }
+
+      if (!response.ok) {
+        // Backend của mình trả cả message và error.
+        // Hiển thị error thật để biết chính xác lỗi 500.
+        const backendError =
+          data.error ||
+          data.message ||
+          'Cannot upload order result.'
+
+        throw new Error(backendError)
+      }
+
+      const uploadedFiles = data.files || []
+
+      setResultFiles((currentFiles) => [
+        ...currentFiles,
+        ...uploadedFiles,
+      ])
+
+      setResultMessage(
+        `${uploadedFiles.length} result file${
+          uploadedFiles.length !== 1 ? 's' : ''
+        } uploaded successfully.`
+      )
+    } catch (err) {
+      console.error(
+        'ORDER RESULT UPLOAD ERROR:',
+        err
+      )
+
+      setResultError(
+        err.message ||
+        'Cannot upload order result.'
+      )
+    } finally {
+      setUploadingResult(false)
+
+      if (resultInputRef.current) {
+        resultInputRef.current.value = ''
+      }
+    }
+  }
+
+  const openResultFilePicker = () => {
+    setResultMessage('')
+    setResultError('')
+
+    if (resultInputRef.current) {
+      resultInputRef.current.click()
+    }
+  }
+
+  const downloadOrderResult = async () => {
+    if (!selectedOrder) {
+      return
+    }
+
+    try {
+      const token = getToken()
+
+      if (!token) {
+        throw new Error('Please login again.')
+      }
+
+      const response = await fetch(
+        `http://127.0.0.1:9999/order-results/${selectedOrder.id}/download`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+
+      if (!response.ok) {
+        let data = {}
+
+        try {
+          data = await response.json()
+        } catch {
+          data = {}
+        }
+
+        throw new Error(
+          data.error ||
+          data.message ||
+          'Cannot download order result.'
+        )
+      }
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+
+      link.href = url
+      link.download = `order_${selectedOrder.id}_results.zip`
+
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error(err)
+
+      setResultError(
+        err.message || 'Cannot download order result.'
+      )
+    }
   }
 
   // =========================================================
@@ -777,6 +987,16 @@ function OrderManagement() {
                     setSelectedOrder(order)
                     setStatusMessage('')
                     setError('')
+                    setResultMessage('')
+                    setResultError('')
+                    setResultFiles([])
+
+                    if (
+                      String(order.status || '').toLowerCase() ===
+                      'completed'
+                    ) {
+                      loadOrderResult(order.id)
+                    }
                   }}
                 >
                   View Details
@@ -960,6 +1180,93 @@ function OrderManagement() {
               ================================================= */}
 
               {renderStatusActions()}
+
+              {/* =================================================
+                  ORDER RESULT
+              ================================================= */}
+
+              {String(
+                selectedOrder.status || ''
+              ).toLowerCase() === 'completed' && (
+                <div className="order-result-section">
+
+                  <label>
+                    Order Result
+                  </label>
+
+                  <input
+                    ref={resultInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    webkitdirectory="true"
+                    directory=""
+                    onChange={handleResultFilesSelected}
+                    style={{ display: 'none' }}
+                  />
+
+                  <div className="order-actions">
+
+                    <button
+                      type="button"
+                      className="accept-order-button"
+                      onClick={openResultFilePicker}
+                      disabled={uploadingResult}
+                    >
+                      {uploadingResult
+                        ? 'Uploading...'
+                        : 'Upload Result Folder'}
+                    </button>
+
+                    {resultFiles.length > 0 && (
+                      <button
+                        type="button"
+                        className="view-order-button"
+                        onClick={downloadOrderResult}
+                      >
+                        Download ZIP
+                      </button>
+                    )}
+
+                  </div>
+
+                  <small>
+                    Upload is optional. Select a folder containing
+                    multiple images. Uploading the result does not
+                    change the order status.
+                  </small>
+
+                  {resultFiles.length > 0 && (
+                    <div>
+                      <small>
+                        {resultFiles.length} result file
+                        {resultFiles.length !== 1 ? 's' : ''} uploaded.
+                      </small>
+
+                      <div>
+                        {resultFiles.map((file) => (
+                          <div key={file.id}>
+                            {file.file_name}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {resultMessage && (
+                    <small>
+                      {resultMessage}
+                    </small>
+                  )}
+
+                  {resultError && (
+                    <small>
+                      {resultError}
+                    </small>
+                  )}
+
+                </div>
+              )}
 
               {/* =================================================
                   STATUS MESSAGE

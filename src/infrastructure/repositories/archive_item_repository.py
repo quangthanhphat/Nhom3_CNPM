@@ -1,5 +1,6 @@
-from infrastructure.databases.factory_database import FactoryDatabase
+from infrastructure.databases import FactoryDatabase
 from infrastructure.models.archive_item_model import ArchiveItemModel
+from infrastructure.models.digital_scan_model import DigitalScanModel
 
 
 class ArchiveItemRepository:
@@ -18,6 +19,36 @@ class ArchiveItemRepository:
         return session.query(ArchiveItemModel).filter(
             ArchiveItemModel.id == archive_item_id
         ).first()
+
+    def list_by_archive_id(self, archive_id):
+        session = self.database.session
+
+        return (
+            session.query(ArchiveItemModel, DigitalScanModel)
+            .join(
+                DigitalScanModel,
+                ArchiveItemModel.scan_id == DigitalScanModel.id
+            )
+            .filter(
+                ArchiveItemModel.archive_id == archive_id
+            )
+            .order_by(
+                ArchiveItemModel.added_at.asc()
+            )
+            .all()
+        )
+
+    def find_by_archive_and_scan(self, archive_id, scan_id):
+        session = self.database.session
+
+        return (
+            session.query(ArchiveItemModel)
+            .filter(
+                ArchiveItemModel.archive_id == archive_id,
+                ArchiveItemModel.scan_id == scan_id
+            )
+            .first()
+        )
 
     def create(self, archive_item):
         session = self.database.session

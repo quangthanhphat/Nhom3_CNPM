@@ -11,7 +11,7 @@ from api.controllers.auth_controller import bp as auth_bp
 from api.controllers.film_lab_controller import bp as film_lab_bp
 from api.controllers.service_controller import bp as service_bp
 from api.controllers.service_category_controller import bp as service_category_bp
-
+from api.controllers.order_result_controller import order_result_bp
 from api.controllers.order_controller import bp as order_bp
 from api.controllers.processing_workflow_controller import bp as processing_workflow_bp
 from api.controllers.payment_controller import bp as payment_bp
@@ -39,6 +39,8 @@ from api.controllers.rating_controller import bp as rating_bp
 from api.controllers.favorite_controller import bp as favorite_bp
 
 from api.controllers.complaint_controller import bp as complaint_bp
+from api.controllers.support_controller import bp as support_bp
+
 from api.controllers.notification_controller import bp as notification_bp
 from api.controllers.knowledge_base_controller import bp as knowledge_base_bp
 
@@ -68,7 +70,7 @@ CORS(app)
 # =========================
 
 app.register_blueprint(auth_bp)
-
+app.register_blueprint(order_result_bp)
 app.register_blueprint(film_lab_bp)
 app.register_blueprint(service_bp)
 app.register_blueprint(service_category_bp)
@@ -100,6 +102,8 @@ app.register_blueprint(rating_bp)
 app.register_blueprint(favorite_bp)
 
 app.register_blueprint(complaint_bp)
+app.register_blueprint(support_bp)
+
 app.register_blueprint(notification_bp)
 app.register_blueprint(knowledge_base_bp)
 
